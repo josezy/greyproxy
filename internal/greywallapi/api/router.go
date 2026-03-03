@@ -65,9 +65,16 @@ func NewRouter(s *Shared, pathPrefix string) (*gin.Engine, *gin.RouterGroup) {
 	// WebSocket
 	g.GET("/ws", WebSocketHandler(s))
 
-	// Static files (embedded)
+	// Static files (embedded) with cache headers
 	g.GET("/static/*filepath", func(c *gin.Context) {
-		c.FileFromFS("static"+c.Param("filepath"), http.FS(greywallapi.StaticFS))
+		filepath := c.Param("filepath")
+		// Cache fonts and icons for 1 year (immutable embedded assets)
+		if strings.HasPrefix(filepath, "/fonts/") || strings.HasPrefix(filepath, "/icons/") {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			c.Header("Cache-Control", "public, max-age=3600")
+		}
+		c.FileFromFS("static"+filepath, http.FS(greywallapi.StaticFS))
 	})
 
 	return r, g

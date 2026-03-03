@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-foreground">Rules</h1>
+        <h1 class="text-2xl font-bold text-foreground">Rules</h1>
         <button onclick="showCreateRuleModal()"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90">
             <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -11,34 +11,34 @@
         </button>
     </div>
 
-    <div class="bg-card rounded-lg shadow-sm border border-border p-4 relative">
+    <div class="bg-card rounded-lg shadow-sm border border-border p-3 relative">
         <form id="rules-filter-form"
             hx-get="{{.Prefix}}/htmx/rules-list" hx-target="#rules-list" hx-swap="innerHTML"
             hx-trigger="submit, change delay:100ms, input delay:100ms"
             hx-sync="this:replace"
             hx-indicator="#rules-filter-spinner"
-            class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            class="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
-                <label for="container" class="block text-sm font-medium text-foreground mb-1">Source</label>
+                <label for="container" class="block text-xs font-medium text-foreground mb-1">Source</label>
                 <select id="container" name="container"
-                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
+                    class="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
                     <option value="">All</option>
                     {{range .Containers}}<option value="{{.}}">{{.}}</option>{{end}}
                 </select>
             </div>
             <div>
-                <label for="destination" class="block text-sm font-medium text-foreground mb-1">Destination</label>
+                <label for="destination" class="block text-xs font-medium text-foreground mb-1">Destination</label>
                 <input type="text" id="destination" name="destination" placeholder="e.g., openai.com"
-                    class="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
+                    class="mt-1 block w-full px-2 py-1.5 text-xs border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
             </div>
-            <div class="flex items-center pt-6">
+            <div class="flex items-center pt-5">
                 <input type="checkbox" id="include_expired" name="include_expired" value="true"
-                    class="h-4 w-4 text-primary focus:ring-ring border-border rounded">
-                <label for="include_expired" class="ml-2 block text-sm text-foreground">Show expired</label>
+                    class="h-3.5 w-3.5 text-primary focus:ring-ring border-border rounded">
+                <label for="include_expired" class="ml-2 block text-xs text-foreground">Show expired</label>
             </div>
             <div class="flex items-end space-x-2">
                 <button type="button" id="clear-filters-btn" onclick="clearRulesFilters()"
-                    class="hidden w-full inline-flex justify-center items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-secondary-foreground bg-background hover:bg-muted">Clear</button>
+                    class="hidden w-full inline-flex justify-center items-center px-3 py-1.5 border border-border text-xs font-medium rounded-md text-secondary-foreground bg-background hover:bg-muted">Clear</button>
                 <svg id="rules-filter-spinner" class="htmx-indicator h-5 w-5 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -144,7 +144,19 @@
     }
     function hideRuleModal() { document.getElementById('rule-modal').classList.add('hidden'); }
     document.body.addEventListener('htmx:afterSwap', function(event) {
-        if (event.detail.target.id === 'rules-list') { hideRuleModal(); }
+        if (event.detail.target.id === 'rules-list') {
+            hideRuleModal();
+            // Highlight rule if linked from logs page
+            var highlightId = new URLSearchParams(window.location.search).get('highlight');
+            if (highlightId) {
+                var el = document.querySelector('[data-rule-id="' + highlightId + '"]');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('bg-primary/10');
+                    setTimeout(function() { el.classList.remove('bg-primary/10'); }, 3000);
+                }
+            }
+        }
     });
 </script>
 {{end}}

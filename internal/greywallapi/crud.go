@@ -870,7 +870,7 @@ func QueryLogs(db *DB, f LogFilter) ([]RequestLog, int, error) {
 	rows, err := db.ReadDB().Query(
 		`SELECT rl.id, rl.timestamp, rl.container_name, rl.container_id, rl.destination_host, rl.destination_port,
 		        rl.resolved_hostname, rl.method, rl.result, rl.rule_id, rl.response_time_ms,
-		        CASE WHEN r.id IS NOT NULL THEN r.container_pattern || ' -> ' || r.destination_pattern || ':' || r.port_pattern ELSE NULL END AS rule_summary
+		        CASE WHEN r.id IS NOT NULL THEN r.container_pattern || ' → ' || r.destination_pattern || ':' || r.port_pattern ELSE NULL END AS rule_summary
 		 FROM request_logs rl
 		 LEFT JOIN rules r ON rl.rule_id = r.id
 		 WHERE `+whereClause+` ORDER BY rl.timestamp DESC LIMIT ? OFFSET ?`,

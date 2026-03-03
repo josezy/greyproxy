@@ -17,7 +17,7 @@
         </thead>
         <tbody class="bg-card divide-y divide-border">
             {{range $items}}
-            <tr class="hover:bg-muted transition-colors">
+            <tr class="hover:bg-muted transition-colors" data-rule-id="{{.ID}}">
                 <td class="px-6 py-4 whitespace-nowrap">
                     {{if eq .Action "deny"}}
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border border-border text-foreground">✗ Deny</span>
@@ -65,7 +65,7 @@
 <!-- Mobile cards -->
 <div class="xl:hidden space-y-3">
     {{range $items}}
-    <div class="bg-card rounded-lg shadow-sm border border-border p-3">
+    <div class="bg-card rounded-lg shadow-sm border border-border p-3" data-rule-id="{{.ID}}">
         <div class="flex justify-between items-start">
             <div class="min-w-0">
                 <div class="flex items-center space-x-2 mb-1">

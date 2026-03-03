@@ -4,37 +4,41 @@
 {{$pages := .Pages}}
 {{if $items}}
 <div class="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
-    <table class="min-w-full divide-y divide-border">
+    <table class="w-full table-fixed divide-y divide-border">
+        <colgroup>
+            <col style="width: 1.5rem;">
+            <col style="width: 2rem;">
+            <col style="width: 10rem;">
+            <col>
+            <col>
+        </colgroup>
         <thead class="bg-secondary">
             <tr>
-                <th class="pl-3 pr-1 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider w-6"></th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Result</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Timestamp</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Source</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Destination</th>
+                <th class="pl-3 pr-1 py-3"></th>
+                <th class="px-2 py-3"></th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Timestamp</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Source</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-secondary-foreground uppercase tracking-wider">Destination</th>
             </tr>
         </thead>
         <tbody class="bg-card divide-y divide-border">
             {{range $items}}
             <tr class="hover:bg-muted transition-colors cursor-pointer" onclick="toggleLogDetails('{{.ID}}')">
-                <td class="pl-3 pr-1 py-2 whitespace-nowrap text-xs text-foreground">
+                <td class="pl-3 pr-1 py-2 align-middle">
                     <svg id="log-icon-{{.ID}}" class="h-3.5 w-3.5 transition-transform" style="transition: transform 0.2s;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap">
-                    {{if eq .Result "allowed"}}
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">✓ Allowed</span>
-                    {{else}}
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border border-border text-foreground">✗ Blocked</span>
-                    {{end}}
+                <td class="px-2 py-2 align-middle text-center">
+                    {{if eq .Result "allowed"}}<span class="text-green-600 text-sm leading-none">✓</span>
+                    {{else}}<span class="text-red-600 text-sm leading-none">✗</span>{{end}}
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap text-xs text-foreground">{{formatTime .Timestamp}}</td>
-                <td class="px-4 py-2 whitespace-nowrap">
+                <td class="px-4 py-2 truncate">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary cursor-pointer hover:underline hover:bg-primary/20"
                           onclick="event.stopPropagation(); filterLogsByContainer('{{.ContainerName}}')">{{.ContainerName}}</span>
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-xs text-foreground">
+                <td class="px-4 py-2 truncate text-xs text-foreground">
                     {{if .ResolvedHostname.Valid}}
                     <span class="cursor-pointer hover:underline hover:text-primary" onclick="event.stopPropagation(); filterLogsByDestination('{{.ResolvedHostname.String}}')">{{.ResolvedHostname.String}}</span><span class="text-muted-foreground">:{{.DestinationPort.Int64}}</span>
                     <span class="text-xs text-muted-foreground">({{.DestinationHost}})</span>
@@ -44,29 +48,14 @@
                 </td>
             </tr>
             <tr id="log-details-{{.ID}}" class="hidden bg-muted/50">
-                <td colspan="5" class="px-6 py-4">
-                    <dl class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                        <div>
-                            <dt class="text-sm font-medium text-foreground">Container ID</dt>
-                            <dd class="mt-1 text-sm text-muted-foreground font-mono">{{if .ContainerID.Valid}}{{truncate .ContainerID.String 12}}{{else}}N/A{{end}}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-foreground">Method</dt>
-                            <dd class="mt-1 text-sm text-muted-foreground">{{if .Method.Valid}}{{.Method.String}}{{else}}N/A{{end}}</dd>
-                        </div>
-                        {{if .RuleID.Valid}}
-                        <div>
-                            <dt class="text-sm font-medium text-foreground">Rule matched</dt>
-                            <dd class="mt-1 text-sm text-muted-foreground">#{{.RuleID.Int64}}{{if .RuleSummary.Valid}} <span class="text-xs">({{.RuleSummary.String}})</span>{{end}}</dd>
-                        </div>
-                        {{end}}
-                        {{if .ResponseTimeMs.Valid}}
-                        <div>
-                            <dt class="text-sm font-medium text-foreground">Response time</dt>
-                            <dd class="mt-1 text-sm text-muted-foreground">{{.ResponseTimeMs.Int64}}ms</dd>
-                        </div>
-                        {{end}}
-                    </dl>
+                <td colspan="5" class="px-6 py-3">
+                    {{if .RuleID.Valid}}
+                    <span class="text-sm text-muted-foreground">Rule matched:
+                        <a href="{{$.Prefix}}/rules?highlight={{.RuleID.Int64}}" class="text-sm text-primary hover:underline">#{{.RuleID.Int64}}</a>{{if .RuleSummary.Valid}} <span class="text-sm text-muted-foreground">({{.RuleSummary.String}})</span>{{end}}
+                    </span>
+                    {{else}}
+                    <span class="text-sm text-muted-foreground">No rule matched</span>
+                    {{end}}
                 </td>
             </tr>
             {{end}}

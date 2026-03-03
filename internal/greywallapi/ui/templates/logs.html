@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-foreground">Logs</h1>
+        <h1 class="text-2xl font-bold text-foreground">Logs</h1>
         <button hx-get="{{.Prefix}}/htmx/logs-table" hx-target="#logs-table" hx-swap="innerHTML"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90">
             <svg class="htmx-indicator -ml-1 mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -12,40 +12,40 @@
         </button>
     </div>
 
-    <div class="bg-card rounded-lg shadow-sm border border-border p-4 relative">
+    <div class="bg-card rounded-lg shadow-sm border border-border p-3 relative">
         <form id="logs-filter-form"
             hx-get="{{.Prefix}}/htmx/logs-table" hx-target="#logs-table" hx-swap="innerHTML"
             hx-trigger="submit, change delay:100ms, input delay:100ms"
             hx-sync="this:replace"
             hx-indicator="#logs-filter-spinner"
-            class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                    <label for="container" class="block text-sm font-medium text-foreground mb-1">Source</label>
+                    <label for="container" class="block text-xs font-medium text-foreground mb-1">Source</label>
                     <select id="container" name="container"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
+                        class="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
                         <option value="">All</option>
                         {{range .Containers}}<option value="{{.}}">{{.}}</option>{{end}}
                     </select>
                 </div>
                 <div>
-                    <label for="result" class="block text-sm font-medium text-foreground mb-1">Result</label>
+                    <label for="result" class="block text-xs font-medium text-foreground mb-1">Result</label>
                     <select id="result" name="result"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
+                        class="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
                         <option value="">All</option>
                         <option value="allowed">Allowed</option>
                         <option value="blocked">Blocked</option>
                     </select>
                 </div>
                 <div>
-                    <label for="destination" class="block text-sm font-medium text-foreground mb-1">Destination</label>
+                    <label for="destination" class="block text-xs font-medium text-foreground mb-1">Destination</label>
                     <input type="text" id="destination" name="destination" placeholder="e.g., openai.com"
-                        class="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
+                        class="mt-1 block w-full px-2 py-1.5 text-xs border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
                 </div>
                 <div>
-                    <label for="limit" class="block text-sm font-medium text-foreground mb-1">Limit</label>
+                    <label for="limit" class="block text-xs font-medium text-foreground mb-1">Limit</label>
                     <select id="limit" name="limit"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
+                        class="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border-border focus:outline-none focus:ring-ring focus:border-ring rounded-md bg-background">
                         <option value="50">50</option>
                         <option value="100">100</option>
                         <option value="200">200</option>
@@ -53,20 +53,20 @@
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label for="from_date" class="block text-sm font-medium text-foreground mb-1">From</label>
+                    <label for="from_date" class="block text-xs font-medium text-foreground mb-1">From</label>
                     <input type="datetime-local" id="from_date" name="from_date"
-                        class="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
+                        class="mt-1 block w-full px-2 py-1.5 text-xs border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
                 </div>
                 <div>
-                    <label for="to_date" class="block text-sm font-medium text-foreground mb-1">To</label>
+                    <label for="to_date" class="block text-xs font-medium text-foreground mb-1">To</label>
                     <input type="datetime-local" id="to_date" name="to_date"
-                        class="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
+                        class="mt-1 block w-full px-2 py-1.5 text-xs border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring bg-background">
                 </div>
                 <div class="flex items-end space-x-2">
                     <button type="button" id="reset-filters-btn" onclick="resetFilters()"
-                        class="hidden w-full inline-flex justify-center items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-secondary-foreground bg-background hover:bg-muted">
+                        class="hidden w-full inline-flex justify-center items-center px-3 py-1.5 border border-border text-xs font-medium rounded-md text-secondary-foreground bg-background hover:bg-muted">
                         Reset
                     </button>
                     <svg id="logs-filter-spinner" class="htmx-indicator h-5 w-5 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -107,6 +107,14 @@
                          document.getElementById('limit').value !== '50';
         document.getElementById('reset-filters-btn').classList.toggle('hidden', !hasFilters);
     }
+    // Pre-fill filters from URL query params (e.g. when clicking from dashboard)
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        ['container', 'result', 'destination', 'from_date', 'to_date', 'limit'].forEach(function(key) {
+            var val = params.get(key);
+            if (val) document.getElementById(key).value = val;
+        });
+    })();
     document.getElementById('logs-filter-form').addEventListener('change', updateLogsResetButton);
     document.getElementById('logs-filter-form').addEventListener('input', updateLogsResetButton);
     updateLogsResetButton();
