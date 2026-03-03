@@ -9,7 +9,7 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
-    main: ./cmd/gost
+    main: ./cmd/greyproxy
     targets:
       - darwin_amd64
       - darwin_arm64

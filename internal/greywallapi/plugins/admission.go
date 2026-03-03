@@ -3,8 +3,8 @@ package plugins
 import (
 	"context"
 
-	"github.com/go-gost/core/admission"
-	"github.com/go-gost/core/logger"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/admission"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 )
 
 // Admission implements admission.Admission.

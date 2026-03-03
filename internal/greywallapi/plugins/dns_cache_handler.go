@@ -6,12 +6,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-gost/core/handler"
-	"github.com/go-gost/core/hop"
-	"github.com/go-gost/core/logger"
-	md "github.com/go-gost/core/metadata"
-	greywallapi "github.com/go-gost/gost/internal/greywallapi"
-	"github.com/go-gost/x/registry"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/handler"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/hop"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
+	md "github.com/greyhavenhq/greyproxy/internal/gostcore/metadata"
+	greywallapi "github.com/greyhavenhq/greyproxy/internal/greywallapi"
+	"github.com/greyhavenhq/greyproxy/internal/gostx/registry"
 	"github.com/miekg/dns"
 )
 

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-gost/core/logger"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 	"github.com/gorilla/websocket"
-	greywallapi "github.com/go-gost/gost/internal/greywallapi"
+	greywallapi "github.com/greyhavenhq/greyproxy/internal/greywallapi"
 )
 
 var upgrader = websocket.Upgrader{

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/go-gost/core/logger"
-	"github.com/go-gost/core/resolver"
-	greywallapi "github.com/go-gost/gost/internal/greywallapi"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/resolver"
+	greywallapi "github.com/greyhavenhq/greyproxy/internal/greywallapi"
 )
 
 // Resolver implements resolver.Resolver.

@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-gost/core/bypass"
-	"github.com/go-gost/core/logger"
-	ctxvalue "github.com/go-gost/x/ctx"
-	greywallapi "github.com/go-gost/gost/internal/greywallapi"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/bypass"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
+	ctxvalue "github.com/greyhavenhq/greyproxy/internal/gostx/ctx"
+	greywallapi "github.com/greyhavenhq/greyproxy/internal/greywallapi"
 )
 
 // Bypass implements bypass.Bypass.

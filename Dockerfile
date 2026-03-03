@@ -19,10 +19,10 @@ WORKDIR /app
 
 COPY . .
 
-RUN cd cmd/gost && \
+RUN cd cmd/greyproxy && \
     xx-go build -ldflags "-s -w" && \
-    xx-verify gost && \
-    { upx --best gost || true; }
+    xx-verify greyproxy && \
+    { upx --best greyproxy || true; }
 
 FROM alpine:3.22
 
@@ -31,6 +31,6 @@ RUN apk add --no-cache iptables
 
 WORKDIR /bin/
 
-COPY --from=builder /app/cmd/gost/gost .
+COPY --from=builder /app/cmd/greyproxy/greyproxy .
 
-ENTRYPOINT ["/bin/gost"]
+ENTRYPOINT ["/bin/greyproxy"]

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/go-gost/core/logger"
-	"github.com/go-gost/core/service"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/service"
 )
 
 //go:embed static/*

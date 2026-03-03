@@ -31,7 +31,7 @@ _testmain.go
 
 *.bak
 
-cmd/gost/gost
+cmd/greyproxy/greyproxy
 snap
 
 *.pem
@@ -41,4 +41,4 @@ dist/
 /greywall.db
 /greywall.db-shm
 /greywall.db-wal
-/gost
+/greyproxy

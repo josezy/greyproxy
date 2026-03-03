@@ -1,8 +1,8 @@
-NAME=gost
+NAME=greyproxy
 BINDIR=bin
-VERSION=$(shell cat cmd/gost/version.go | grep 'version =' | sed 's/.*\"\(.*\)\".*/\1/g')
+VERSION=$(shell cat cmd/greyproxy/version.go | grep 'version =' | sed 's/.*\"\(.*\)\".*/\1/g')
 GOBUILD=CGO_ENABLED=0 go build --ldflags="-s -w" -v -x -a
-GOFILES=cmd/gost/*.go
+GOFILES=cmd/greyproxy/*.go
 
 PLATFORM_LIST = \
 	darwin-amd64 \

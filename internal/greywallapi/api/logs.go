@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	greywallapi "github.com/go-gost/gost/internal/greywallapi"
+	greywallapi "github.com/greyhavenhq/greyproxy/internal/greywallapi"
 )
 
 func LogsListHandler(s *Shared) gin.HandlerFunc {

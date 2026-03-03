@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	greywallapi "github.com/go-gost/gost/internal/greywallapi"
+	greywallapi "github.com/greyhavenhq/greyproxy/internal/greywallapi"
 )
 
 // Shared holds shared state passed to all handlers.

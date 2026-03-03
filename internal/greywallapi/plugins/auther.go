@@ -6,8 +6,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/go-gost/core/auth"
-	"github.com/go-gost/core/logger"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/auth"
+	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 )
 
 // Auther implements auth.Authenticator.
