@@ -215,7 +215,7 @@ func RegisterPageRoutes(r *gin.RouterGroup, db *greywallapi.DB, bus *greywallapi
 		dashboardTmpl.Execute(c.Writer, PageData{
 			CurrentPath: c.Request.URL.Path,
 			Prefix:      prefix,
-			Title:       "Dashboard - Greywall",
+			Title:       "Dashboard - Greyproxy",
 			Containers:  getContainers(db),
 		})
 	})
@@ -228,7 +228,7 @@ func RegisterPageRoutes(r *gin.RouterGroup, db *greywallapi.DB, bus *greywallapi
 		pendingTmpl.Execute(c.Writer, PageData{
 			CurrentPath: c.Request.URL.Path,
 			Prefix:      prefix,
-			Title:       "Pending Requests - Greywall",
+			Title:       "Pending Requests - Greyproxy",
 			Containers:  getContainers(db),
 		})
 	})
@@ -237,7 +237,7 @@ func RegisterPageRoutes(r *gin.RouterGroup, db *greywallapi.DB, bus *greywallapi
 		rulesTmpl.Execute(c.Writer, PageData{
 			CurrentPath: c.Request.URL.Path,
 			Prefix:      prefix,
-			Title:       "Rules - Greywall",
+			Title:       "Rules - Greyproxy",
 			Containers:  getContainers(db),
 		})
 	})
@@ -246,7 +246,7 @@ func RegisterPageRoutes(r *gin.RouterGroup, db *greywallapi.DB, bus *greywallapi
 		logsTmpl.Execute(c.Writer, PageData{
 			CurrentPath: c.Request.URL.Path,
 			Prefix:      prefix,
-			Title:       "Logs - Greywall",
+			Title:       "Logs - Greyproxy",
 			Containers:  getContainers(db),
 		})
 	})
