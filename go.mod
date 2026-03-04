@@ -11,7 +11,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.3
-	github.com/judwhite/go-svc v1.2.1
+	github.com/kardianos/service v1.2.4
 	github.com/miekg/dns v1.1.61
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.8.1

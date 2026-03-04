@@ -14,7 +14,7 @@ import (
 
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 	xlogger "github.com/greyhavenhq/greyproxy/internal/gostx/logger"
-	"github.com/judwhite/go-svc"
+	"github.com/kardianos/service"
 )
 
 type stringList []string
@@ -81,7 +81,7 @@ func worker(id int, args []string, ctx *context.Context, ret *int) {
 	}
 }
 
-func init() {
+func parseFlags() {
 	var printVersion bool
 
 	flag.Var(&services, "L", "service list")
@@ -102,12 +102,31 @@ func init() {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "service" {
+		handleServiceCommand(os.Args[2:])
+		return
+	}
+
+	parseFlags()
+
 	log := xlogger.NewLogger()
 	logger.SetDefault(log)
 
 	p := &program{}
+	p.initParser()
 
-	if err := svc.Run(p); err != nil {
+	svcConfig := &service.Config{
+		Name:        "greyproxy",
+		DisplayName: "Greyproxy",
+		Description: "Greyproxy network proxy service",
+	}
+
+	s, err := service.New(p, svcConfig)
+	if err != nil {
+		logger.Default().Fatal(err)
+	}
+
+	if err := s.Run(); err != nil {
 		logger.Default().Fatal(err)
 	}
 }

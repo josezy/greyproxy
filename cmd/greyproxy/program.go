@@ -12,7 +12,7 @@ import (
 
 	defaults "github.com/greyhavenhq/greyproxy"
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
-	"github.com/greyhavenhq/greyproxy/internal/gostcore/service"
+	svccore "github.com/greyhavenhq/greyproxy/internal/gostcore/service"
 	greyproxy "github.com/greyhavenhq/greyproxy/internal/greyproxy"
 	greyproxy_api "github.com/greyhavenhq/greyproxy/internal/greyproxy/api"
 	greyproxy_plugins "github.com/greyhavenhq/greyproxy/internal/greyproxy/plugins"
@@ -24,19 +24,19 @@ import (
 	xmetrics "github.com/greyhavenhq/greyproxy/internal/gostx/metrics"
 	metrics "github.com/greyhavenhq/greyproxy/internal/gostx/metrics/service"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/registry"
-	"github.com/judwhite/go-svc"
+	"github.com/kardianos/service"
 	"github.com/spf13/viper"
 )
 
 type program struct {
-	srvMetrics   service.Service
+	srvMetrics   svccore.Service
 	srvGreyproxy *greyproxy.Service
 	srvProfiling *http.Server
 
 	cancel context.CancelFunc
 }
 
-func (p *program) Init(env svc.Environment) error {
+func (p *program) initParser() {
 	parser.Init(parser.Args{
 		CfgFile:       cfgFile,
 		DefaultConfig: defaults.DefaultConfig,
@@ -46,11 +46,9 @@ func (p *program) Init(env svc.Environment) error {
 		Trace:         trace,
 		MetricsAddr:   metricsAddr,
 	})
-
-	return nil
 }
 
-func (p *program) Start() error {
+func (p *program) Start(s service.Service) error {
 	cfg, err := parser.Parse()
 	if err != nil {
 		return err
@@ -154,7 +152,7 @@ func (p *program) run(cfg *config.Config) error {
 	return nil
 }
 
-func (p *program) Stop() error {
+func (p *program) Stop(s service.Service) error {
 	if p.cancel != nil {
 		p.cancel()
 	}
@@ -300,7 +298,7 @@ func (p *program) buildGreyproxyService() error {
 	return nil
 }
 
-func buildMetricsService(cfg *config.MetricsConfig) (service.Service, error) {
+func buildMetricsService(cfg *config.MetricsConfig) (svccore.Service, error) {
 	auther := auth_parser.ParseAutherFromAuth(cfg.Auth)
 	if cfg.Auther != "" {
 		auther = registry.AutherRegistry().Get(cfg.Auther)
