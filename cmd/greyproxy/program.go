@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -318,7 +319,12 @@ func buildMetricsService(cfg *config.MetricsConfig) (svccore.Service, error) {
 }
 
 // greyproxyDataHome returns the directory for Greyproxy data files.
-// Priority: GREYPROXY_DATA_HOME > XDG_DATA_HOME/greyproxy > current directory.
+// Priority:
+//  1. GREYPROXY_DATA_HOME env var
+//  2. XDG_DATA_HOME/greyproxy env var
+//  3. Platform default: ~/Library/Application Support/greyproxy (macOS)
+//     or ~/.local/share/greyproxy (Linux/other)
+//  4. Current directory (fallback if home dir is unavailable)
 func greyproxyDataHome() string {
 	if v := os.Getenv("GREYPROXY_DATA_HOME"); v != "" {
 		return v
@@ -326,5 +332,12 @@ func greyproxyDataHome() string {
 	if v := os.Getenv("XDG_DATA_HOME"); v != "" {
 		return filepath.Join(v, "greyproxy")
 	}
-	return "."
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "."
+	}
+	if runtime.GOOS == "darwin" {
+		return filepath.Join(home, "Library", "Application Support", "greyproxy")
+	}
+	return filepath.Join(home, ".local", "share", "greyproxy")
 }
