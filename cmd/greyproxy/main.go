@@ -137,10 +137,10 @@ func main() {
 		handleServiceCommand(os.Args[2:])
 
 	case "install":
-		handleInstall()
+		handleInstall(os.Args[2:])
 
 	case "uninstall":
-		handleUninstall()
+		handleUninstall(os.Args[2:])
 
 	case "-V", "--version":
 		fmt.Fprintf(os.Stdout, "greyproxy %s (%s %s/%s)\n",
@@ -159,8 +159,8 @@ Usage: greyproxy <command>
 
 Commands:
   serve       Run the proxy server in foreground
-  install     Install binary and register systemd user service
-  uninstall   Stop service, remove registration and binary
+  install     Install binary and register systemd user service [-f]
+  uninstall   Stop service, remove registration and binary [-f]
   service     Manage the OS service (start/stop/restart/status/...)
 
 Run "greyproxy --version" to print version info.
