@@ -20,7 +20,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.11.1
-	github.com/vishvananda/netlink v1.1.1-0.20211118161826-650dca95af54
 	github.com/vishvananda/netns v0.0.4
 	github.com/vulcand/predicate v1.2.0
 	github.com/xtaci/smux v1.5.31

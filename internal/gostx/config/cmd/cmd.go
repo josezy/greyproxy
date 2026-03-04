@@ -25,146 +25,7 @@ var (
 )
 
 func BuildConfigFromCmd(serviceList, nodeList []string) (*config.Config, error) {
-	namePrefix := ""
 	cfg := &config.Config{}
-
-	var chain *config.ChainConfig
-	if len(nodeList) > 0 {
-		chain = &config.ChainConfig{
-			Name: fmt.Sprintf("%schain-0", namePrefix),
-		}
-		cfg.Chains = append(cfg.Chains, chain)
-	}
-
-	for i, node := range nodeList {
-		url, err := Norm(node)
-		if err != nil {
-			return nil, err
-		}
-
-		m := map[string]any{}
-		for k, v := range url.Query() {
-			if len(v) > 0 {
-				m[k] = v[0]
-			}
-		}
-		md := mdx.NewMetadata(m)
-
-		hopConfig := &config.HopConfig{
-			Name:     fmt.Sprintf("%shop-%d", namePrefix, i),
-			Selector: parseSelector(m),
-		}
-
-		if v := mdutil.GetString(md, "bypass"); v != "" {
-			bypassCfg := &config.BypassConfig{
-				Name: fmt.Sprintf("%sbypass-%d", namePrefix, len(cfg.Bypasses)),
-			}
-			if v[0] == '~' {
-				bypassCfg.Whitelist = true
-				v = v[1:]
-			}
-			for _, s := range strings.Split(v, ",") {
-				if s == "" {
-					continue
-				}
-				bypassCfg.Matchers = append(bypassCfg.Matchers, s)
-			}
-			hopConfig.Bypass = bypassCfg.Name
-			cfg.Bypasses = append(cfg.Bypasses, bypassCfg)
-			delete(m, "bypass")
-		}
-		if v := mdutil.GetString(md, "resolver"); v != "" {
-			resolverCfg := &config.ResolverConfig{
-				Name: fmt.Sprintf("%sresolver-%d", namePrefix, len(cfg.Resolvers)),
-			}
-			for _, rs := range strings.Split(v, ",") {
-				if rs == "" {
-					continue
-				}
-				resolverCfg.Nameservers = append(
-					resolverCfg.Nameservers,
-					&config.NameserverConfig{
-						Addr: rs,
-					},
-				)
-			}
-			hopConfig.Resolver = resolverCfg.Name
-			cfg.Resolvers = append(cfg.Resolvers, resolverCfg)
-			delete(m, "resolver")
-		}
-		if v := mdutil.GetString(md, "hosts"); v != "" {
-			hostsCfg := &config.HostsConfig{
-				Name: fmt.Sprintf("%shosts-%d", namePrefix, len(cfg.Hosts)),
-			}
-			for _, s := range strings.Split(v, ",") {
-				ss := strings.SplitN(s, ":", 2)
-				if len(ss) != 2 {
-					continue
-				}
-				hostsCfg.Mappings = append(
-					hostsCfg.Mappings,
-					&config.HostMappingConfig{
-						Hostname: ss[0],
-						IP:       ss[1],
-					},
-				)
-			}
-			hopConfig.Hosts = hostsCfg.Name
-			cfg.Hosts = append(cfg.Hosts, hostsCfg)
-			delete(m, "hosts")
-		}
-
-		if v := mdutil.GetString(md, "interface"); v != "" {
-			m["hop.interface"] = v
-			delete(m, "interface")
-		}
-		if v := mdutil.GetInt(md, "so_mark"); v > 0 {
-			m["hop.so_mark"] = v
-			delete(m, "so_mark")
-		}
-		if v := mdutil.GetInt(md, "proxyProtocol"); v > 0 {
-			m["hop.proxyProtocol"] = v
-			delete(m, "proxyProtocol")
-		}
-
-		hopMd := map[string]any{}
-		for k, v := range m {
-			if strings.HasPrefix(k, "node.") ||
-				strings.HasPrefix(k, "connector.") ||
-				strings.HasPrefix(k, "dialer.") {
-				continue
-			}
-			if s, found := strings.CutPrefix(k, "hop."); found {
-				hopMd[s] = v
-				delete(m, k)
-				continue
-			}
-
-			hopMd[k] = v
-		}
-		hopConfig.Metadata = hopMd
-
-		nodeConfig, err := buildNodeConfig(url, m)
-		if err != nil {
-			return nil, err
-		}
-		nodeConfig.Name = fmt.Sprintf("%snode-0", namePrefix)
-
-		var nodes []*config.NodeConfig
-		for _, host := range strings.Split(nodeConfig.Addr, ",") {
-			if host == "" {
-				continue
-			}
-			nodeCfg := &config.NodeConfig{}
-			*nodeCfg = *nodeConfig
-			nodeCfg.Name = fmt.Sprintf("%snode-%d", namePrefix, len(nodes))
-			nodeCfg.Addr = host
-			nodes = append(nodes, nodeCfg)
-		}
-		hopConfig.Nodes = nodes
-
-		chain.Hops = append(chain.Hops, hopConfig)
-	}
 
 	var services []*config.ServiceConfig
 	for _, svc := range serviceList {
@@ -192,15 +53,9 @@ func BuildConfigFromCmd(serviceList, nodeList []string) (*config.Config, error) 
 		services = append(services, svcs...)
 	}
 
+	namePrefix := ""
 	for i, service := range services {
 		service.Name = fmt.Sprintf("%sservice-%d", namePrefix, i)
-		if chain != nil {
-			if service.Listener.Type == "rtcp" || service.Listener.Type == "rudp" {
-				service.Listener.Chain = chain.Name
-			} else {
-				service.Handler.Chain = chain.Name
-			}
-		}
 		cfg.Services = append(cfg.Services, service)
 
 		mh := service.Handler.Metadata

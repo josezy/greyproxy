@@ -224,78 +224,6 @@ type HostsConfig struct {
 	Plugin   *PluginConfig        `yaml:",omitempty" json:"plugin,omitempty"`
 }
 
-type IngressRuleConfig struct {
-	Hostname string `json:"hostname"`
-	Endpoint string `json:"endpoint"`
-}
-
-type IngressConfig struct {
-	Name   string               `json:"name"`
-	Rules  []*IngressRuleConfig `yaml:",omitempty" json:"rules,omitempty"`
-	Reload time.Duration        `yaml:",omitempty" json:"reload,omitempty"`
-	File   *FileLoader          `yaml:",omitempty" json:"file,omitempty"`
-	Redis  *RedisLoader         `yaml:",omitempty" json:"redis,omitempty"`
-	HTTP   *HTTPLoader          `yaml:"http,omitempty" json:"http,omitempty"`
-	Plugin *PluginConfig        `yaml:",omitempty" json:"plugin,omitempty"`
-}
-
-type SDConfig struct {
-	Name   string        `json:"name"`
-	Plugin *PluginConfig `yaml:",omitempty" json:"plugin,omitempty"`
-}
-
-type RouterRouteConfig struct {
-	// Deprecated: use dst instead
-	Net     string `yaml:",omitempty" json:"net,omitempty"`
-	Dst     string `yaml:",omitempty" json:"dst,omitempty"`
-	Gateway string `json:"gateway"`
-}
-
-type RouterConfig struct {
-	Name   string               `json:"name"`
-	Routes []*RouterRouteConfig `yaml:",omitempty" json:"routes,omitempty"`
-	Reload time.Duration        `yaml:",omitempty" json:"reload,omitempty"`
-	File   *FileLoader          `yaml:",omitempty" json:"file,omitempty"`
-	Redis  *RedisLoader         `yaml:",omitempty" json:"redis,omitempty"`
-	HTTP   *HTTPLoader          `yaml:"http,omitempty" json:"http,omitempty"`
-	Plugin *PluginConfig        `yaml:",omitempty" json:"plugin,omitempty"`
-}
-
-type RecorderConfig struct {
-	Name   string         `json:"name"`
-	File   *FileRecorder  `yaml:",omitempty" json:"file,omitempty"`
-	TCP    *TCPRecorder   `yaml:"tcp,omitempty" json:"tcp,omitempty"`
-	HTTP   *HTTPRecorder  `yaml:"http,omitempty" json:"http,omitempty"`
-	Redis  *RedisRecorder `yaml:",omitempty" json:"redis,omitempty"`
-	Plugin *PluginConfig  `yaml:",omitempty" json:"plugin,omitempty"`
-}
-
-type FileRecorder struct {
-	Path     string             `json:"path"`
-	Sep      string             `yaml:",omitempty" json:"sep,omitempty"`
-	Rotation *LogRotationConfig `yaml:",omitempty" json:"rotation,omitempty"`
-}
-
-type TCPRecorder struct {
-	Addr    string        `json:"addr"`
-	Timeout time.Duration `json:"timeout"`
-}
-
-type HTTPRecorder struct {
-	URL     string            `yaml:"url" json:"url"`
-	Timeout time.Duration     `yaml:",omitempty" json:"timeout,omitempty"`
-	Header  map[string]string `yaml:",omitempty" json:"header,omitempty"`
-}
-
-type RedisRecorder struct {
-	Addr     string `json:"addr"`
-	DB       int    `yaml:",omitempty" json:"db,omitempty"`
-	Username string `yaml:",omitempty" json:"username,omitempty"`
-	Password string `yaml:",omitempty" json:"password,omitempty"`
-	Key      string `yaml:",omitempty" json:"key,omitempty"`
-	Type     string `yaml:",omitempty" json:"type,omitempty"`
-}
-
 type RecorderObject struct {
 	Name     string         `json:"name"`
 	Record   string         `json:"record"`
@@ -309,11 +237,6 @@ type LimiterConfig struct {
 	File   *FileLoader   `yaml:",omitempty" json:"file,omitempty"`
 	Redis  *RedisLoader  `yaml:",omitempty" json:"redis,omitempty"`
 	HTTP   *HTTPLoader   `yaml:"http,omitempty" json:"http,omitempty"`
-	Plugin *PluginConfig `yaml:",omitempty" json:"plugin,omitempty"`
-}
-
-type ObserverConfig struct {
-	Name   string        `json:"name"`
 	Plugin *PluginConfig `yaml:",omitempty" json:"plugin,omitempty"`
 }
 
@@ -487,12 +410,6 @@ type ServiceStats struct {
 	OutputBytes  uint64 `yaml:"outputBytes" json:"outputBytes"`
 }
 
-type ChainConfig struct {
-	Name     string         `json:"name"`
-	Hops     []*HopConfig   `json:"hops"`
-	Metadata map[string]any `yaml:",omitempty" json:"metadata,omitempty"`
-}
-
 type ChainGroupConfig struct {
 	Chains   []string        `yaml:",omitempty" json:"chains,omitempty"`
 	Selector *SelectorConfig `yaml:",omitempty" json:"selector,omitempty"`
@@ -544,26 +461,19 @@ type NodeConfig struct {
 
 type Config struct {
 	Services   []*ServiceConfig   `json:"services"`
-	Chains     []*ChainConfig     `yaml:",omitempty" json:"chains,omitempty"`
-	Hops       []*HopConfig       `yaml:",omitempty" json:"hops,omitempty"`
 	Authers    []*AutherConfig    `yaml:",omitempty" json:"authers,omitempty"`
 	Admissions []*AdmissionConfig `yaml:",omitempty" json:"admissions,omitempty"`
 	Bypasses   []*BypassConfig    `yaml:",omitempty" json:"bypasses,omitempty"`
 	Resolvers  []*ResolverConfig  `yaml:",omitempty" json:"resolvers,omitempty"`
 	Hosts      []*HostsConfig     `yaml:",omitempty" json:"hosts,omitempty"`
-	Ingresses  []*IngressConfig   `yaml:",omitempty" json:"ingresses,omitempty"`
-	Routers    []*RouterConfig    `yaml:",omitempty" json:"routers,omitempty"`
-	SDs        []*SDConfig        `yaml:"sds,omitempty" json:"sds,omitempty"`
-	Recorders  []*RecorderConfig  `yaml:",omitempty" json:"recorders,omitempty"`
 	Limiters   []*LimiterConfig   `yaml:",omitempty" json:"limiters,omitempty"`
 	CLimiters  []*LimiterConfig   `yaml:"climiters,omitempty" json:"climiters,omitempty"`
 	RLimiters  []*LimiterConfig   `yaml:"rlimiters,omitempty" json:"rlimiters,omitempty"`
-	Observers  []*ObserverConfig  `yaml:",omitempty" json:"observers,omitempty"`
 	Loggers    []*LoggerConfig    `yaml:",omitempty" json:"loggers,omitempty"`
 	TLS        *TLSConfig         `yaml:",omitempty" json:"tls,omitempty"`
 	Log        *LogConfig         `yaml:",omitempty" json:"log,omitempty"`
 	Profiling  *ProfilingConfig   `yaml:",omitempty" json:"profiling,omitempty"`
-	Metrics *MetricsConfig `yaml:",omitempty" json:"metrics,omitempty"`
+	Metrics    *MetricsConfig     `yaml:",omitempty" json:"metrics,omitempty"`
 }
 
 func (c *Config) Load() error {

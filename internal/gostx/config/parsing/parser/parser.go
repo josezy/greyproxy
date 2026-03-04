@@ -147,25 +147,18 @@ func mergeConfig(cfg1, cfg2 *config.Config) *config.Config {
 
 	cfg := &config.Config{
 		Services:   append(cfg1.Services, cfg2.Services...),
-		Chains:     append(cfg1.Chains, cfg2.Chains...),
-		Hops:       append(cfg1.Hops, cfg2.Hops...),
 		Authers:    append(cfg1.Authers, cfg2.Authers...),
 		Admissions: append(cfg1.Admissions, cfg2.Admissions...),
 		Bypasses:   append(cfg1.Bypasses, cfg2.Bypasses...),
 		Resolvers:  append(cfg1.Resolvers, cfg2.Resolvers...),
 		Hosts:      append(cfg1.Hosts, cfg2.Hosts...),
-		Ingresses:  append(cfg1.Ingresses, cfg2.Ingresses...),
-		SDs:        append(cfg1.SDs, cfg2.SDs...),
-		Recorders:  append(cfg1.Recorders, cfg2.Recorders...),
 		Limiters:   append(cfg1.Limiters, cfg2.Limiters...),
 		CLimiters:  append(cfg1.CLimiters, cfg2.CLimiters...),
 		RLimiters:  append(cfg1.RLimiters, cfg2.RLimiters...),
 		Loggers:    append(cfg1.Loggers, cfg2.Loggers...),
-		Routers:    append(cfg1.Routers, cfg2.Routers...),
-		Observers:  append(cfg1.Observers, cfg2.Observers...),
-		TLS:     cfg1.TLS,
-		Log:     cfg1.Log,
-		Metrics: cfg1.Metrics,
+		TLS:        cfg1.TLS,
+		Log:        cfg1.Log,
+		Metrics:    cfg1.Metrics,
 		Profiling:  cfg1.Profiling,
 	}
 	if cfg2.TLS != nil {

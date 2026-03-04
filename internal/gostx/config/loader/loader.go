@@ -7,17 +7,10 @@ import (
 	admission_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/admission"
 	auth_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/auth"
 	bypass_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/bypass"
-	chain_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/chain"
-	hop_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/hop"
 	hosts_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/hosts"
-	ingress_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/ingress"
 	limiter_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/limiter"
 	logger_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/logger"
-	observer_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/observer"
-	recorder_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/recorder"
 	resolver_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/resolver"
-	router_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/router"
-	sd_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/sd"
 	service_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/service"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/registry"
 )
@@ -115,51 +108,6 @@ func register(cfg *config.Config) error {
 		}
 	}
 
-	for name := range registry.IngressRegistry().GetAll() {
-		registry.IngressRegistry().Unregister(name)
-	}
-	for _, ingressCfg := range cfg.Ingresses {
-		if err := registry.IngressRegistry().Register(ingressCfg.Name, ingress_parser.ParseIngress(ingressCfg)); err != nil {
-			return err
-		}
-	}
-
-	for name := range registry.RouterRegistry().GetAll() {
-		registry.RouterRegistry().Unregister(name)
-	}
-	for _, routerCfg := range cfg.Routers {
-		if err := registry.RouterRegistry().Register(routerCfg.Name, router_parser.ParseRouter(routerCfg)); err != nil {
-			return err
-		}
-	}
-
-	for name := range registry.SDRegistry().GetAll() {
-		registry.SDRegistry().Unregister(name)
-	}
-	for _, sdCfg := range cfg.SDs {
-		if err := registry.SDRegistry().Register(sdCfg.Name, sd_parser.ParseSD(sdCfg)); err != nil {
-			return err
-		}
-	}
-
-	for name := range registry.ObserverRegistry().GetAll() {
-		registry.ObserverRegistry().Unregister(name)
-	}
-	for _, observerCfg := range cfg.Observers {
-		if err := registry.ObserverRegistry().Register(observerCfg.Name, observer_parser.ParseObserver(observerCfg)); err != nil {
-			return err
-		}
-	}
-
-	for name := range registry.RecorderRegistry().GetAll() {
-		registry.RecorderRegistry().Unregister(name)
-	}
-	for _, recorderCfg := range cfg.Recorders {
-		if err := registry.RecorderRegistry().Register(recorderCfg.Name, recorder_parser.ParseRecorder(recorderCfg)); err != nil {
-			return err
-		}
-	}
-
 	for name := range registry.TrafficLimiterRegistry().GetAll() {
 		registry.TrafficLimiterRegistry().Unregister(name)
 	}
@@ -183,32 +131,6 @@ func register(cfg *config.Config) error {
 	}
 	for _, limiterCfg := range cfg.RLimiters {
 		if err := registry.RateLimiterRegistry().Register(limiterCfg.Name, limiter_parser.ParseRateLimiter(limiterCfg)); err != nil {
-			return err
-		}
-	}
-
-	for name := range registry.HopRegistry().GetAll() {
-		registry.HopRegistry().Unregister(name)
-	}
-	for _, hopCfg := range cfg.Hops {
-		hop, err := hop_parser.ParseHop(hopCfg, logger.Default())
-		if err != nil {
-			return err
-		}
-		if err := registry.HopRegistry().Register(hopCfg.Name, hop); err != nil {
-			return err
-		}
-	}
-
-	for name := range registry.ChainRegistry().GetAll() {
-		registry.ChainRegistry().Unregister(name)
-	}
-	for _, chainCfg := range cfg.Chains {
-		c, err := chain_parser.ParseChain(chainCfg, logger.Default())
-		if err != nil {
-			return err
-		}
-		if err := registry.ChainRegistry().Register(chainCfg.Name, c); err != nil {
 			return err
 		}
 	}
