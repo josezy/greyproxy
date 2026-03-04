@@ -1,5 +1,8 @@
 package main
 
+// Build-time variables (set via -ldflags)
 var (
-	version = "0.2.0"
+	version   = "dev"
+	buildTime = "unknown"
+	gitCommit = "unknown"
 )

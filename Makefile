@@ -1,7 +1,10 @@
 NAME=greyproxy
 BINDIR=bin
-VERSION=$(shell cat cmd/greyproxy/version.go | grep 'version =' | sed 's/.*\"\(.*\)\".*/\1/g')
-GOBUILD=CGO_ENABLED=0 go build --ldflags="-s -w" -v -x -a
+VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
+GIT_COMMIT=$(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
+LDFLAGS=-s -w -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) -X main.gitCommit=$(GIT_COMMIT)
+GOBUILD=CGO_ENABLED=0 go build --ldflags="$(LDFLAGS)" -v -x -a
 GOFILES=cmd/greyproxy/*.go
 
 PLATFORM_LIST = \

@@ -32,7 +32,10 @@ builds:
       # - windows_arm64
       # - android_arm64
     ldflags:
-      - "-s -w -X 'main.version={{ .Tag }}'"
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.buildTime={{.Date}}
+      - -X main.gitCommit={{.Commit}}
 
 upx:
   - enabled: true

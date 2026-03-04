@@ -95,8 +95,8 @@ func parseFlags() {
 	flag.Parse()
 
 	if printVersion {
-		fmt.Fprintf(os.Stdout, "greyproxy %s (%s %s/%s)\n",
-			version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		fmt.Fprintf(os.Stdout, "greyproxy %s (%s %s/%s)\n  built:  %s\n  commit: %s\n",
+			version, runtime.Version(), runtime.GOOS, runtime.GOARCH, buildTime, gitCommit)
 		os.Exit(0)
 	}
 }
@@ -143,8 +143,8 @@ func main() {
 		handleUninstall(os.Args[2:])
 
 	case "-V", "--version":
-		fmt.Fprintf(os.Stdout, "greyproxy %s (%s %s/%s)\n",
-			version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		fmt.Fprintf(os.Stdout, "greyproxy %s (%s %s/%s)\n  built:  %s\n  commit: %s\n",
+			version, runtime.Version(), runtime.GOOS, runtime.GOARCH, buildTime, gitCommit)
 
 	default:
 		printUsage()
