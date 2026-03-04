@@ -42,6 +42,8 @@ func NewRouter(s *Shared, pathPrefix string) (*gin.Engine, *gin.RouterGroup) {
 	// REST API
 	api := g.Group("/api")
 	{
+		api.GET("/health", HealthHandler(s))
+
 		api.GET("/dashboard", DashboardHandler(s))
 
 		api.GET("/pending/count", PendingCountHandler(s))

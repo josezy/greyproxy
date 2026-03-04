@@ -1,9 +1,11 @@
 package greyproxy
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sync"
+	"time"
 )
 
 // DB wraps a SQLite database with a write mutex for safe concurrent access.
@@ -59,6 +61,13 @@ func (db *DB) Lock() {
 // Unlock releases the write mutex.
 func (db *DB) Unlock() {
 	db.mu.Unlock()
+}
+
+// Ping checks whether the database is reachable.
+func (db *DB) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	return db.read.PingContext(ctx)
 }
 
 // Close closes both database connections.
