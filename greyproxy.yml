@@ -17,7 +17,6 @@ log:
 greyproxy:
   addr: ":43080"
   pathPrefix: /
-  db: "./greyproxy.db"
   auther: auther-0
   admission: admission-0
   bypass: bypass-0
