@@ -258,7 +258,7 @@ func RegisterHTMXRoutes(r *gin.RouterGroup, db *greyproxy.DB, bus *greyproxy.Eve
 	htmx := r.Group("/htmx")
 
 	htmx.GET("/dashboard-stats", func(c *gin.Context) {
-		now := time.Now().UTC()
+		now := time.Now()
 		var fromDate, toDate time.Time
 
 		period := c.DefaultQuery("period", "today")
@@ -268,7 +268,7 @@ func RegisterHTMXRoutes(r *gin.RouterGroup, db *greyproxy.DB, bus *greyproxy.Eve
 		case "30d":
 			fromDate = now.AddDate(0, 0, -30)
 		default:
-			fromDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+			fromDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 		}
 		toDate = now
 
