@@ -8,8 +8,7 @@ This software is meant to be used with greywall (to be published soon)
     <tr>
       <td align="center" width="25%"><img src="https://github.com/user-attachments/assets/a4d1f40a-153e-4815-bcd2-c8b23d91cf54"
   width="100%" /><br /><sub>Dashboard</sub></td>
-      <td align="center" width="25%"><img src="https://github.com/user-attachments/assets/f78b82aa-1d66-45f1-bfa3-7c2147099cce"
-  width="100%" /><br /><sub>Pending Requests</sub></td>
+      <td align="center" width="25%"><img width="1752" height="1216" alt="image" src="https://github.com/user-attachments/assets/9100172e-b23e-4d78-aaba-5adba1029bb2" /><br /><sub>Pending Requests</sub></td>
       <td align="center" width="25%"><img src="https://github.com/user-attachments/assets/4108b7b7-20b0-4a43-b2bb-913bf70a0dd0"
   width="100%" /><br /><sub>Rules</sub></td>
       <td align="center" width="25%"><img src="https://github.com/user-attachments/assets/c707c7c5-396c-4830-a65f-7250c2041f48"
