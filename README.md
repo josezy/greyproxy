@@ -2,7 +2,7 @@
 
 A managed network proxy with a built-in web dashboard, rule engine, and REST API. Greyproxy wraps powerful multi-protocol tunneling capabilities with an intuitive management layer for controlling and monitoring network traffic.
 
-This software is meant to be used with greywall (to be published soon)
+This software is meant to be used with [**greywall**](https://github.com/GreyhavenHQ/greywall), a deny-by-default sandbox that wraps commands with filesystem and network isolation.
 
   <table>
     <tr>
@@ -28,6 +28,13 @@ This software is meant to be used with greywall (to be published soon)
 - **Single Binary**: Web UI, fonts, icons, and assets are all embedded, no separate frontend to deploy
 
 ## Quick Start
+
+### Homebrew (macOS)
+
+```bash
+brew tap greyhavenhq/tap
+brew install greyproxy
+```
 
 ### Build from Source
 
