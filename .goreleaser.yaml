@@ -86,10 +86,18 @@ homebrew_casks:
         install: |
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/greyproxy"]
+            system_command "#{staged_path}/greyproxy", args: ["install", "-f"]
+          end
+        uninstall: |
+          if OS.mac?
+            system_command "#{staged_path}/greyproxy", args: ["uninstall", "-f"]
           end
     dependencies:
       - formula: terminal-notifier
     caveats: |
+      greyproxy has been installed and started as a launchd user agent.
+      Dashboard: http://localhost:43080
+
       For desktop notifications on macOS, install terminal-notifier:
         brew install terminal-notifier
 

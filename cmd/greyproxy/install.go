@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/kardianos/service"
 	flag "github.com/spf13/pflag"
@@ -27,19 +30,49 @@ func installBinPath() string {
 	return filepath.Join(home, ".local", "bin", "greyproxy")
 }
 
-func newServiceControl() (service.Service, error) {
-	binDst := installBinPath()
-	svcConfig := &service.Config{
+func serviceLabel() string {
+	if runtime.GOOS == "darwin" {
+		return "launchd user agent"
+	}
+	return "systemd user service"
+}
+
+// isBrewManaged returns true if the given binary path lives under the
+// Homebrew prefix (e.g. /opt/homebrew or /usr/local).
+func isBrewManaged(binPath string) bool {
+	if runtime.GOOS != "darwin" {
+		return false
+	}
+	out, err := exec.Command("brew", "--prefix").Output()
+	if err != nil {
+		return false
+	}
+	prefix := strings.TrimSpace(string(out))
+	if prefix == "" {
+		return false
+	}
+	return strings.HasPrefix(binPath, prefix)
+}
+
+func newServiceConfig(execPath string) *service.Config {
+	return &service.Config{
 		Name:        serviceName,
 		DisplayName: "Greyproxy",
 		Description: "Greyproxy network proxy service",
-		Executable:  binDst,
+		Executable:  execPath,
 		Arguments:   []string{"serve"},
 		Option: service.KeyValue{
 			"UserService": true,
 		},
 	}
-	return service.New(&program{}, svcConfig)
+}
+
+func newServiceControl() (service.Service, error) {
+	return service.New(&program{}, newServiceConfig(installBinPath()))
+}
+
+func newServiceControlAt(execPath string) (service.Service, error) {
+	return service.New(&program{}, newServiceConfig(execPath))
 }
 
 func isInstalled() bool {
@@ -49,7 +82,6 @@ func isInstalled() bool {
 
 func handleInstall(args []string) {
 	force := parseInstallFlags(args)
-	binDst := installBinPath()
 
 	binSrc, err := os.Executable()
 	if err != nil {
@@ -58,14 +90,25 @@ func handleInstall(args []string) {
 	}
 	binSrc, _ = filepath.EvalSymlinks(binSrc)
 
+	// When installed via Homebrew, skip the binary copy and register the
+	// service pointing at the brew-managed binary directly. This way
+	// "brew upgrade" keeps the running service up to date.
+	if isBrewManaged(binSrc) {
+		handleBrewInstall(binSrc, force)
+		return
+	}
+
+	binDst := installBinPath()
+
 	if isInstalled() {
 		handleReinstall(binSrc, binDst, force)
 		return
 	}
 
+	label := serviceLabel()
 	fmt.Printf("Ready to install greyproxy. This will:\n")
 	fmt.Printf("  1. Copy %s -> %s\n", binSrc, binDst)
-	fmt.Printf("  2. Install greyproxy as a systemd user service\n")
+	fmt.Printf("  2. Register greyproxy as a %s\n", label)
 	fmt.Printf("  3. Start the service\n")
 
 	if !force {
@@ -81,13 +124,55 @@ func handleInstall(args []string) {
 	fmt.Println("\nDashboard: http://localhost:43080")
 }
 
+func handleBrewInstall(brewBin string, force bool) {
+	label := serviceLabel()
+	fmt.Printf("Homebrew installation detected at %s\n", brewBin)
+	fmt.Printf("\nThis will register the brew-managed binary as a %s.\n", label)
+	fmt.Printf("Future upgrades via 'brew upgrade greyproxy' will keep the service current.\n")
+
+	if !force {
+		fmt.Printf("\nProceed? [Y/n] ")
+		if !askConfirm() {
+			fmt.Println("You can start the server manually with: greyproxy serve")
+			fmt.Println("Dashboard: http://localhost:43080")
+			return
+		}
+	}
+
+	// Stop and unregister any existing service (may point at ~/.local/bin)
+	if s, err := newServiceControl(); err == nil {
+		_ = service.Control(s, "stop")
+		_ = service.Control(s, "uninstall")
+	}
+
+	s, err := newServiceControlAt(brewBin)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := service.Control(s, "install"); err != nil {
+		fmt.Fprintf(os.Stderr, "error: registering service: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Registered %s\n", label)
+
+	if err := service.Control(s, "start"); err != nil {
+		fmt.Fprintf(os.Stderr, "error: starting service: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("Service started")
+	fmt.Println("\nDashboard: http://localhost:43080")
+}
+
 func handleReinstall(binSrc, binDst string, force bool) {
+	label := serviceLabel()
 	fmt.Printf("An existing installation was found at %s\n", binDst)
 	fmt.Printf("\nReady to update the existing installation. This will:\n")
 	fmt.Printf("  1. Stop the running service\n")
 	fmt.Printf("  2. Remove the current service registration\n")
 	fmt.Printf("  3. Replace the binary with %s\n", binSrc)
-	fmt.Printf("  4. Re-register the systemd user service\n")
+	fmt.Printf("  4. Re-register the %s\n", label)
 	fmt.Printf("  5. Start the service\n")
 
 	if !force {
@@ -105,11 +190,11 @@ func handleReinstall(binSrc, binDst string, force bool) {
 		os.Exit(1)
 	}
 
-	// 1. Stop service (ignore error — may already be stopped)
+	// 1. Stop service (ignore error -- may already be stopped)
 	_ = service.Control(s, "stop")
 	fmt.Println("Service stopped")
 
-	// 2. Unregister old service (ignore error — may not be registered)
+	// 2. Unregister old service (ignore error -- may not be registered)
 	_ = service.Control(s, "uninstall")
 	fmt.Println("Removed old service registration")
 
@@ -119,6 +204,8 @@ func handleReinstall(binSrc, binDst string, force bool) {
 }
 
 func freshInstall(binSrc, binDst string) {
+	label := serviceLabel()
+
 	// Copy binary
 	if err := copyBinary(binSrc, binDst); err != nil {
 		fmt.Fprintf(os.Stderr, "error: copying binary: %v\n", err)
@@ -137,7 +224,7 @@ func freshInstall(binSrc, binDst string) {
 		fmt.Fprintf(os.Stderr, "error: registering service: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Registered systemd user service")
+	fmt.Printf("Registered %s\n", label)
 
 	// Start service
 	if err := service.Control(s, "start"); err != nil {
@@ -160,10 +247,11 @@ func askConfirm() bool {
 func handleUninstall(args []string) {
 	force := parseInstallFlags(args)
 	binDst := installBinPath()
+	label := serviceLabel()
 
 	fmt.Printf("Ready to uninstall greyproxy. This will:\n")
 	fmt.Printf("  1. Stop the greyproxy service\n")
-	fmt.Printf("  2. Remove the systemd user service\n")
+	fmt.Printf("  2. Remove the %s\n", label)
 	fmt.Printf("  3. Remove %s\n", binDst)
 
 	if !force {
@@ -179,7 +267,7 @@ func handleUninstall(args []string) {
 		os.Exit(1)
 	}
 
-	// 1. Stop service (ignore error — may already be stopped)
+	// 1. Stop service (ignore error -- may already be stopped)
 	_ = service.Control(s, "stop")
 	fmt.Println("Service stopped")
 
@@ -188,7 +276,7 @@ func handleUninstall(args []string) {
 		fmt.Fprintf(os.Stderr, "error: removing service: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Removed systemd user service")
+	fmt.Printf("Removed %s\n", label)
 
 	// 3. Remove binary
 	if err := os.Remove(binDst); err != nil && !os.IsNotExist(err) {
