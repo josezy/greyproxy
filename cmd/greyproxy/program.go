@@ -263,6 +263,24 @@ func (p *program) buildGreyproxyService() error {
 	shared.Bus = tmpSvc.Bus
 	shared.Waiters = tmpSvc.Waiters
 	shared.ConnTracker = greyproxy.NewConnTracker()
+
+	// User settings (persisted to disk, merged with defaults from config).
+	settingsPath := filepath.Join(greyproxyDataHome(), "settings.json")
+	shared.Settings = greyproxy.NewSettingsManager(settingsPath, gaCfg.Notifications.Enabled)
+	if err := shared.Settings.Load(); err != nil {
+		log.Warnf("failed to load user settings: %v", err)
+	}
+
+	// Build dashboard URL for notification click-to-open.
+	dashboardURL := "http://localhost" + gaCfg.Addr + strings.TrimRight(gaCfg.PathPrefix, "/") + "/pending"
+	resolvedSettings := shared.Settings.Get()
+	shared.Notifier = greyproxy.NewNotifier(shared.Bus, shared.DB, resolvedSettings.NotificationsEnabled, dashboardURL)
+
+	// Wire settings changes back to the notifier.
+	shared.Settings.OnNotificationsChanged(func(enabled bool) {
+		shared.Notifier.SetEnabled(enabled)
+	})
+
 	shared.Version = version
 
 	// Collect listening ports for the health endpoint
@@ -311,6 +329,7 @@ func (p *program) buildGreyproxyService() error {
 	svc.SetHandler(router)
 
 	p.srvGreyproxy = svc
+	shared.Notifier.Start()
 
 	go func() {
 		log.Info("listening on ", svc.Addr())

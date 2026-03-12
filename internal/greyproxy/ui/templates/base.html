@@ -30,21 +30,21 @@
                         serif: ['Source Serif Pro', 'Georgia', 'serif'],
                     },
                     colors: {
-                        background: 'var(--color-background)',
-                        foreground: 'var(--color-foreground)',
-                        card: 'var(--color-card)',
-                        'card-foreground': 'var(--color-card-foreground)',
-                        primary: 'var(--color-primary)',
-                        'primary-foreground': 'var(--color-primary-foreground)',
-                        secondary: 'var(--color-secondary)',
-                        'secondary-foreground': 'var(--color-secondary-foreground)',
-                        muted: 'var(--color-muted)',
-                        'muted-foreground': 'var(--color-muted-foreground)',
-                        accent: 'var(--color-accent)',
-                        destructive: 'var(--color-destructive)',
-                        border: 'var(--color-border)',
-                        input: 'var(--color-input)',
-                        ring: 'var(--color-ring)',
+                        background: 'rgb(var(--color-background) / <alpha-value>)',
+                        foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
+                        card: 'rgb(var(--color-card) / <alpha-value>)',
+                        'card-foreground': 'rgb(var(--color-card-foreground) / <alpha-value>)',
+                        primary: 'rgb(var(--color-primary) / <alpha-value>)',
+                        'primary-foreground': 'rgb(var(--color-primary-foreground) / <alpha-value>)',
+                        secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
+                        'secondary-foreground': 'rgb(var(--color-secondary-foreground) / <alpha-value>)',
+                        muted: 'rgb(var(--color-muted) / <alpha-value>)',
+                        'muted-foreground': 'rgb(var(--color-muted-foreground) / <alpha-value>)',
+                        accent: 'rgb(var(--color-accent) / <alpha-value>)',
+                        destructive: 'rgb(var(--color-destructive) / <alpha-value>)',
+                        border: 'rgb(var(--color-border) / <alpha-value>)',
+                        input: 'rgb(var(--color-input) / <alpha-value>)',
+                        ring: 'rgb(var(--color-ring) / <alpha-value>)',
                     },
                     borderRadius: {
                         lg: '0.625rem',
@@ -60,40 +60,40 @@
 
     <style>
         :root {
-            --color-background: #ffffff;
-            --color-foreground: #161614;
-            --color-card: #f9f9f7;
-            --color-card-foreground: #161614;
-            --color-primary: rgb(217, 94, 42);
-            --color-primary-foreground: #ffffff;
-            --color-secondary: #f9f9f7;
-            --color-secondary-foreground: #161614;
-            --color-muted: #f0f0ec;
-            --color-muted-foreground: #7f7f79;
-            --color-accent: rgb(217, 94, 42);
-            --color-destructive: rgb(180, 51, 50);
-            --color-border: #ddddd7;
-            --color-input: #ddddd7;
-            --color-ring: rgb(217, 94, 42);
+            --color-background: 255 255 255;
+            --color-foreground: 22 22 20;
+            --color-card: 249 249 247;
+            --color-card-foreground: 22 22 20;
+            --color-primary: 217 94 42;
+            --color-primary-foreground: 255 255 255;
+            --color-secondary: 249 249 247;
+            --color-secondary-foreground: 22 22 20;
+            --color-muted: 240 240 236;
+            --color-muted-foreground: 127 127 121;
+            --color-accent: 217 94 42;
+            --color-destructive: 180 51 50;
+            --color-border: 221 221 215;
+            --color-input: 221 221 215;
+            --color-ring: 217 94 42;
             --color-green: #16a34a;
             --color-red: #dc2626;
         }
         .dark {
-            --color-background: #141413;
-            --color-foreground: #ededeb;
-            --color-card: #1c1c1a;
-            --color-card-foreground: #ededeb;
-            --color-primary: rgb(217, 94, 42);
-            --color-primary-foreground: #ffffff;
-            --color-secondary: #232320;
-            --color-secondary-foreground: #ededeb;
-            --color-muted: #2a2a27;
-            --color-muted-foreground: #9a9a94;
-            --color-accent: rgb(217, 94, 42);
-            --color-destructive: rgb(220, 80, 78);
-            --color-border: #3a3a36;
-            --color-input: #3a3a36;
-            --color-ring: rgb(217, 94, 42);
+            --color-background: 20 20 19;
+            --color-foreground: 237 237 235;
+            --color-card: 28 28 26;
+            --color-card-foreground: 237 237 235;
+            --color-primary: 217 94 42;
+            --color-primary-foreground: 255 255 255;
+            --color-secondary: 35 35 32;
+            --color-secondary-foreground: 237 237 235;
+            --color-muted: 42 42 39;
+            --color-muted-foreground: 154 154 148;
+            --color-accent: 217 94 42;
+            --color-destructive: 220 80 78;
+            --color-border: 58 58 54;
+            --color-input: 58 58 54;
+            --color-ring: 217 94 42;
             --color-green: #22c55e;
             --color-red: #ef4444;
         }
@@ -131,14 +131,12 @@
                 </a>
                 <!-- Mobile menu button -->
                 <div class="flex items-center sm:hidden space-x-1">
-                    <button type="button" onclick="toggleTheme()" class="btn-plain p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted" title="Toggle theme">
-                        <svg class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <a href="{{.Prefix}}/settings" class="btn-plain p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted" title="Settings">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <svg class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                    </button>
+                    </a>
                     <button type="button" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"
                         class="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -165,14 +163,14 @@
                         class="{{if contains .CurrentPath "/logs"}}border-primary text-foreground{{else}}border-transparent text-muted-foreground hover:border-border hover:text-foreground{{end}} inline-flex items-center px-1 pt-[2px] border-b-2 text-sm font-medium">
                         Logs
                     </a>
-                    <button type="button" onclick="toggleTheme()" class="btn-plain ml-2 p-1.5 self-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Toggle theme">
-                        <svg class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <a href="{{.Prefix}}/settings"
+                        class="{{if contains .CurrentPath "/settings"}}text-foreground{{else}}text-muted-foreground hover:text-foreground{{end}} btn-plain ml-2 p-1.5 self-center rounded-md hover:bg-muted transition-colors"
+                        title="Settings">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <svg class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                    </button>
+                    </a>
                 </div>
             </div>
             <!-- Mobile menu dropdown -->
@@ -194,6 +192,10 @@
                     <a href="{{.Prefix}}/logs"
                         class="{{if contains .CurrentPath "/logs"}}bg-muted border-primary text-foreground{{else}}border-transparent text-muted-foreground hover:bg-muted hover:text-foreground{{end}} block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                         Logs
+                    </a>
+                    <a href="{{.Prefix}}/settings"
+                        class="{{if contains .CurrentPath "/settings"}}bg-muted border-primary text-foreground{{else}}border-transparent text-muted-foreground hover:bg-muted hover:text-foreground{{end}} block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
+                        Settings
                     </a>
                 </div>
             </div>

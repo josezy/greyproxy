@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"sync"
@@ -16,7 +18,14 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+func randomClientID() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
 type wsClient struct {
+	id            string
 	conn          *websocket.Conn
 	mu            sync.Mutex
 	subscriptions map[string]bool // nil means "subscribe to all"
@@ -68,7 +77,7 @@ func WebSocketHandler(s *Shared) gin.HandlerFunc {
 		}
 		defer conn.Close()
 
-		client := &wsClient{conn: conn}
+		client := &wsClient{id: randomClientID(), conn: conn}
 
 		// Send connected message
 		client.send(gin.H{
