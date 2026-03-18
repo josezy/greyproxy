@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"compress/flate"
+	"compress/gzip"
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -13,6 +17,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/andybalholm/brotli"
+	"github.com/klauspost/compress/zstd"
 	defaults "github.com/greyhavenhq/greyproxy"
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 	svccore "github.com/greyhavenhq/greyproxy/internal/gostcore/service"
@@ -20,6 +26,7 @@ import (
 	greyproxy_api "github.com/greyhavenhq/greyproxy/internal/greyproxy/api"
 	greyproxy_plugins "github.com/greyhavenhq/greyproxy/internal/greyproxy/plugins"
 	greyproxy_ui "github.com/greyhavenhq/greyproxy/internal/greyproxy/ui"
+	"github.com/greyhavenhq/greyproxy/internal/gostx"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/config"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/config/loader"
 	auth_parser "github.com/greyhavenhq/greyproxy/internal/gostx/config/parsing/auth"
@@ -36,7 +43,8 @@ type program struct {
 	srvGreyproxy *greyproxy.Service
 	srvProfiling *http.Server
 
-	cancel context.CancelFunc
+	cancel          context.CancelFunc
+	assemblerCancel context.CancelFunc
 }
 
 func (p *program) initParser() {
@@ -62,6 +70,29 @@ func (p *program) Start(s service.Service) error {
 			return err
 		}
 		os.Exit(0)
+	}
+
+	// Auto-inject MITM cert paths if CA files exist
+	certFile := filepath.Join(greyproxyDataHome(), "ca-cert.pem")
+	keyFile := filepath.Join(greyproxyDataHome(), "ca-key.pem")
+	if _, err := os.Stat(certFile); err == nil {
+		if _, err := os.Stat(keyFile); err == nil {
+			for _, svc := range cfg.Services {
+				if svc.Handler == nil {
+					continue
+				}
+				if svc.Handler.Type != "http" && svc.Handler.Type != "socks5" {
+					continue
+				}
+				if svc.Handler.Metadata == nil {
+					svc.Handler.Metadata = make(map[string]any)
+				}
+				if _, ok := svc.Handler.Metadata["mitm.certFile"]; !ok {
+					svc.Handler.Metadata["mitm.certFile"] = certFile
+					svc.Handler.Metadata["mitm.keyFile"] = keyFile
+				}
+			}
+		}
 	}
 
 	config.Set(cfg)
@@ -173,6 +204,9 @@ func (p *program) Stop(s service.Service) error {
 		p.srvProfiling.Close()
 		logger.Default().Debug("service @profiling shutdown")
 	}
+	if p.assemblerCancel != nil {
+		p.assemblerCancel()
+	}
 	if p.srvGreyproxy != nil {
 		p.srvGreyproxy.Close()
 		logger.Default().Debug("service @greyproxy shutdown")
@@ -263,6 +297,7 @@ func (p *program) buildGreyproxyService() error {
 	shared.Bus = tmpSvc.Bus
 	shared.Waiters = tmpSvc.Waiters
 	shared.ConnTracker = greyproxy.NewConnTracker()
+	shared.DataHome = greyproxyDataHome()
 
 	// User settings (persisted to disk, merged with defaults from config).
 	settingsPath := filepath.Join(greyproxyDataHome(), "settings.json")
@@ -279,6 +314,12 @@ func (p *program) buildGreyproxyService() error {
 	// Wire settings changes back to the notifier.
 	shared.Settings.OnNotificationsChanged(func(enabled bool) {
 		shared.Notifier.SetEnabled(enabled)
+	})
+
+	// Wire MITM toggle: apply initial setting and listen for changes.
+	gostx.SetGlobalMitmEnabled(resolvedSettings.MitmEnabled)
+	shared.Settings.OnMitmChanged(func(enabled bool) {
+		gostx.SetGlobalMitmEnabled(enabled)
 	})
 
 	shared.Version = version
@@ -303,6 +344,103 @@ func (p *program) buildGreyproxyService() error {
 
 	// Set the shared DNS cache so the DNS handler wrapper can populate it
 	greyproxy_plugins.SetSharedDNSCache(shared.Cache)
+
+	// Wire MITM HTTP round-trip hook to store transactions in the database
+	gostx.SetGlobalMitmHook(func(info gostx.MitmRoundTripInfo) {
+		host, portStr, _ := net.SplitHostPort(info.Host)
+		if host == "" {
+			host = info.Host
+		}
+		port, _ := strconv.Atoi(portStr)
+		if port == 0 {
+			port = 443
+		}
+		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName)
+		go func() {
+			reqCT := info.RequestHeaders.Get("Content-Type")
+			respCT := info.ResponseHeaders.Get("Content-Type")
+
+			// Only store bodies for text-based content types, and decompress if needed
+			var reqBody, respBody []byte
+			if isTextContentType(reqCT) {
+				reqBody = decompressBody(info.RequestBody, info.RequestHeaders.Get("Content-Encoding"))
+			}
+			if isTextContentType(respCT) {
+				respBody = decompressBody(info.ResponseBody, info.ResponseHeaders.Get("Content-Encoding"))
+			}
+
+			txn, err := greyproxy.CreateHttpTransaction(shared.DB, greyproxy.HttpTransactionCreateInput{
+				ContainerName:       containerName,
+				DestinationHost:     host,
+				DestinationPort:     port,
+				Method:              info.Method,
+				URL:                 "https://" + info.Host + info.URI,
+				RequestHeaders:      info.RequestHeaders,
+				RequestBody:         reqBody,
+				RequestContentType:  reqCT,
+				StatusCode:          info.StatusCode,
+				ResponseHeaders:     info.ResponseHeaders,
+				ResponseBody:        respBody,
+				ResponseContentType: respCT,
+				DurationMs:          info.DurationMs,
+				Result:              "auto",
+			})
+			if err != nil {
+				log.Warnf("failed to store HTTP transaction: %v", err)
+				return
+			}
+			shared.Bus.Publish(greyproxy.Event{
+				Type: greyproxy.EventTransactionNew,
+				Data: txn.ToJSON(false),
+			})
+		}()
+	})
+
+	// Wire connection-finish hook to update log entries with MITM skip reason
+	gostx.SetGlobalConnectionFinishHook(func(info gostx.ConnectionFinishInfo) {
+		if info.MitmSkipReason == "" {
+			return
+		}
+		host, portStr, _ := net.SplitHostPort(info.Host)
+		if host == "" {
+			host = info.Host
+		}
+		port, _ := strconv.Atoi(portStr)
+		if port == 0 {
+			port = 443
+		}
+		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName)
+		go func() {
+			if err := greyproxy.UpdateLatestLogMitmSkipReason(shared.DB, containerName, host, port, info.MitmSkipReason); err != nil {
+				log.Warnf("failed to update MITM skip reason: %v", err)
+			}
+		}()
+	})
+
+	// Wire MITM request-level hold hook: evaluate destination-level rules
+	gostx.SetGlobalMitmHoldHook(func(ctx context.Context, info gostx.MitmRequestHoldInfo) error {
+		host, portStr, _ := net.SplitHostPort(info.Host)
+		if host == "" {
+			host = info.Host
+		}
+		port, _ := strconv.Atoi(portStr)
+		if port == 0 {
+			port = 443
+		}
+		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName)
+
+		// Resolve hostname from cache
+		resolvedHostname := shared.Cache.ResolveIP(host)
+		if resolvedHostname == "" {
+			resolvedHostname = host
+		}
+
+		rule := greyproxy.FindMatchingRule(shared.DB, containerName, host, port, resolvedHostname)
+		if rule != nil && rule.Action == "deny" {
+			return gostx.ErrRequestDenied
+		}
+		return nil
+	})
 
 	// Create and register gost plugins
 	autherPlugin := greyproxy_plugins.NewAuther()
@@ -330,6 +468,13 @@ func (p *program) buildGreyproxyService() error {
 
 	p.srvGreyproxy = svc
 	shared.Notifier.Start()
+
+	// Start conversation assembler (dissects LLM API transactions into conversations)
+	assemblerCtx, assemblerCancel := context.WithCancel(context.Background())
+	p.assemblerCancel = assemblerCancel
+	assembler := greyproxy.NewConversationAssembler(shared.DB, shared.Bus)
+	shared.Assembler = assembler
+	go assembler.Start(assemblerCtx)
 
 	go func() {
 		log.Info("listening on ", svc.Addr())
@@ -382,4 +527,73 @@ func greyproxyDataHome() string {
 		return filepath.Join(home, "Library", "Application Support", "greyproxy")
 	}
 	return filepath.Join(home, ".local", "share", "greyproxy")
+}
+
+// isTextContentType returns true if the content type represents human-readable text.
+func isTextContentType(ct string) bool {
+	ct = strings.ToLower(ct)
+	if i := strings.IndexByte(ct, ';'); i >= 0 {
+		ct = ct[:i]
+	}
+	ct = strings.TrimSpace(ct)
+	switch {
+	case strings.HasPrefix(ct, "text/"):
+		return true
+	case ct == "application/json",
+		ct == "application/xml",
+		ct == "application/javascript",
+		ct == "application/x-javascript",
+		ct == "application/ecmascript",
+		ct == "application/x-www-form-urlencoded",
+		ct == "application/graphql",
+		ct == "application/soap+xml",
+		ct == "application/xhtml+xml",
+		ct == "application/x-ndjson":
+		return true
+	case strings.HasSuffix(ct, "+json"),
+		strings.HasSuffix(ct, "+xml"):
+		return true
+	}
+	return false
+}
+
+// decompressBody decompresses a body based on the Content-Encoding header.
+// Returns the original body unchanged if encoding is identity/unknown or on error.
+func decompressBody(body []byte, encoding string) []byte {
+	if len(body) == 0 {
+		return body
+	}
+	encoding = strings.ToLower(strings.TrimSpace(encoding))
+	var reader io.ReadCloser
+	var err error
+	switch encoding {
+	case "gzip", "x-gzip":
+		reader, err = gzip.NewReader(bytes.NewReader(body))
+	case "deflate":
+		reader = flate.NewReader(bytes.NewReader(body))
+	case "br":
+		reader = io.NopCloser(brotli.NewReader(bytes.NewReader(body)))
+	case "zstd":
+		zr, zerr := zstd.NewReader(bytes.NewReader(body))
+		if zerr != nil {
+			return body
+		}
+		defer zr.Close()
+		decoded, derr := io.ReadAll(zr)
+		if derr != nil {
+			return body
+		}
+		return decoded
+	default:
+		return body
+	}
+	if err != nil {
+		return body
+	}
+	defer reader.Close()
+	decoded, err := io.ReadAll(reader)
+	if err != nil {
+		return body
+	}
+	return decoded
 }

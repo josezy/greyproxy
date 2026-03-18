@@ -12,6 +12,10 @@ const (
 	EventPendingAllowed   = "pending_request.allowed"
 	EventPendingDismissed = "pending_request.dismissed"
 	EventWaitersChanged   = "waiters.changed"
+	EventTransactionNew   = "transaction.new"
+
+	// Conversation dissector events
+	EventConversationUpdated = "conversation.updated"
 )
 
 // Event represents a broadcast event.

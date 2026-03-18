@@ -17,8 +17,10 @@ type Shared struct {
 	ConnTracker *greyproxy.ConnTracker
 	Notifier    *greyproxy.Notifier
 	Settings    *greyproxy.SettingsManager
+	Assembler   *greyproxy.ConversationAssembler
 	Version     string
 	Ports       map[string]int
+	DataHome    string // Path to greyproxy data directory (contains CA cert/key)
 }
 
 // NewRouter creates the Gin router with all routes.
@@ -74,6 +76,23 @@ func NewRouter(s *Shared, pathPrefix string) (*gin.Engine, *gin.RouterGroup) {
 
 		api.GET("/settings", SettingsGetHandler(s))
 		api.PUT("/settings", SettingsUpdateHandler(s))
+
+		api.GET("/transactions", TransactionsListHandler(s))
+		api.GET("/transactions/:id", TransactionsDetailHandler(s))
+
+		// Conversations (LLM conversation dissection)
+		api.GET("/conversations", ConversationsListHandler(s))
+		api.GET("/conversations/:id", ConversationsDetailHandler(s))
+		api.GET("/conversations/:id/subagents", ConversationsSubagentsHandler(s))
+
+		// Certificate management
+		api.GET("/cert/status", CertStatusHandler(s))
+		api.POST("/cert/generate", CertGenerateHandler(s))
+		api.GET("/cert/download", CertDownloadHandler(s))
+
+		// Maintenance
+		api.POST("/maintenance/rebuild-conversations", RebuildConversationsHandler(s))
+		api.GET("/maintenance/status", MaintenanceStatusHandler(s))
 	}
 
 	// WebSocket
