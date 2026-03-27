@@ -4,6 +4,25 @@
 <div class="max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold mb-6">Settings</h1>
 
+    <!-- Tab Bar -->
+    <div class="flex rounded-lg border border-border overflow-hidden mb-6">
+        <button type="button" onclick="switchTab('general')" data-tab="general"
+            class="settings-tab flex-1 px-4 py-2 text-sm font-medium transition-colors bg-primary text-primary-foreground">
+            General
+        </button>
+        <button type="button" onclick="switchTab('mitm')" data-tab="mitm"
+            class="settings-tab flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-border text-muted-foreground hover:bg-muted">
+            TLS
+        </button>
+        <button type="button" onclick="switchTab('credentials')" data-tab="credentials"
+            class="settings-tab flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-border text-muted-foreground hover:bg-muted">
+            Credentials
+        </button>
+    </div>
+
+    <!-- ==================== General Tab ==================== -->
+    <div id="tab-general">
+
     <!-- Appearance -->
     <div class="bg-card border border-border rounded-lg p-6 mb-6">
         <h2 class="text-lg font-semibold mb-4">Appearance</h2>
@@ -75,6 +94,70 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Advanced (collapsed by default) -->
+    <div class="mb-6">
+        <button onclick="toggleAdvanced()" class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <svg id="advanced-icon" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            Advanced
+        </button>
+        <div id="advanced-section" class="hidden mt-4">
+            <div class="bg-card border border-border rounded-lg p-6">
+                <h2 class="text-lg font-semibold mb-4">Maintenance</h2>
+
+                <!-- Conversation rebuild -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium">Rebuild conversations</p>
+                        <p class="text-sm text-muted-foreground">Reprocess all HTTP transactions through the conversation assembler. Useful after upgrading when the analysis logic has improved.</p>
+                        <p id="assembler-version-info" class="text-xs text-muted-foreground mt-1"></p>
+                    </div>
+                    <button id="rebuild-btn" onclick="rebuildConversations()"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 flex-shrink-0 ml-4">
+                        Rebuild
+                    </button>
+                </div>
+                <div id="rebuild-status" class="hidden mt-3 text-sm"></div>
+
+                <hr class="my-6 border-border">
+
+                <!-- Redact existing headers -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium">Redact stored headers</p>
+                        <p class="text-sm text-muted-foreground">Apply header redaction to all previously stored HTTP transactions. Replaces sensitive values (Authorization, Cookie, API keys, tokens) with [REDACTED].</p>
+                    </div>
+                    <button id="redact-btn" data-label="Redact" onclick="redactHeaders()"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 flex-shrink-0 ml-4">
+                        Redact
+                    </button>
+                </div>
+                <div id="redact-status" class="hidden mt-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                            <div id="redact-bar" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <span id="redact-status-text" class="text-sm text-muted-foreground whitespace-nowrap"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div><!-- end tab-general -->
+
+    <!-- ==================== MITM Tab ==================== -->
+    <div id="tab-mitm" class="hidden">
+
+    <!-- Info block -->
+    <div class="flex gap-3 p-4 mb-6 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20">
+        <svg class="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+        <p class="text-sm text-blue-900 dark:text-blue-200">TLS interception (sometimes called MITM, or man-in-the-middle) allows GreyProxy to decrypt HTTPS traffic so it can inspect, log, and apply credential substitution to encrypted requests. Without it, GreyProxy can only see the destination hostname, not the full request contents. When enabled, GreyProxy generates a local CA certificate that your system must trust.</p>
     </div>
 
     <!-- TLS Interception -->
@@ -164,56 +247,68 @@
         </div>
     </div>
 
-    <!-- Advanced (collapsed by default) -->
-    <div class="mb-6">
-        <button onclick="toggleAdvanced()" class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <svg id="advanced-icon" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            Advanced
-        </button>
-        <div id="advanced-section" class="hidden mt-4">
-            <div class="bg-card border border-border rounded-lg p-6">
-                <h2 class="text-lg font-semibold mb-4">Maintenance</h2>
+    </div><!-- end tab-mitm -->
 
-                <!-- Conversation rebuild -->
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium">Rebuild conversations</p>
-                        <p class="text-sm text-muted-foreground">Reprocess all HTTP transactions through the conversation assembler. Useful after upgrading when the analysis logic has improved.</p>
-                        <p id="assembler-version-info" class="text-xs text-muted-foreground mt-1"></p>
-                    </div>
-                    <button id="rebuild-btn" onclick="rebuildConversations()"
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 flex-shrink-0 ml-4">
-                        Rebuild
-                    </button>
-                </div>
-                <div id="rebuild-status" class="hidden mt-3 text-sm"></div>
+    <!-- ==================== Credentials Tab ==================== -->
+    <div id="tab-credentials" class="hidden">
 
-                <hr class="my-6 border-border">
+    <!-- Info block -->
+    <div class="flex gap-3 p-4 mb-6 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20">
+        <svg class="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+        <p class="text-sm text-blue-900 dark:text-blue-200">Credential substitution replaces real API keys with opaque placeholders in sandboxed environments. Real credentials are injected transparently at the proxy layer, so your secrets never reach the sandboxed process.</p>
+    </div>
 
-                <!-- Redact existing headers -->
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium">Redact stored headers</p>
-                        <p class="text-sm text-muted-foreground">Apply header redaction to all previously stored HTTP transactions. Replaces sensitive values (Authorization, Cookie, API keys, tokens) with [REDACTED].</p>
-                    </div>
-                    <button id="redact-btn" data-label="Redact" onclick="redactHeaders()"
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 flex-shrink-0 ml-4">
-                        Redact
-                    </button>
-                </div>
-                <div id="redact-status" class="hidden mt-3">
-                    <div class="flex items-center gap-3">
-                        <div class="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-                            <div id="redact-bar" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                        <span id="redact-status-text" class="text-sm text-muted-foreground whitespace-nowrap"></span>
-                    </div>
-                </div>
-            </div>
+    <!-- Protection status -->
+    <div id="cred-status-banner" class="flex items-center gap-4 px-4 py-3 mb-6 rounded-lg border border-border bg-card text-sm">
+        <span id="cred-http-status"></span>
+        <span class="text-muted-foreground">&middot;</span>
+        <span id="cred-https-status"></span>
+    </div>
+
+    <!-- Global Credentials -->
+    <div class="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-2">Global Credentials</h2>
+        <p class="text-sm text-muted-foreground mb-4">Store API keys here, then request them by label when launching a sandbox. Credentials are only injected when explicitly requested; they are never sent to processes automatically.
+            <a href="#" onclick="var d=document.getElementById('cred-usage-details');d.classList.toggle('hidden');this.textContent=d.classList.contains('hidden')?'Read more':'Hide';return false" class="text-primary hover:underline">Read more</a>
+        </p>
+        <div id="cred-usage-details" class="hidden p-3 mb-4 rounded-md bg-muted border border-border space-y-2">
+            <p class="text-xs font-medium text-foreground">Usage</p>
+            <code class="text-xs font-mono text-muted-foreground block">greywall --inject ANTHROPIC_API_KEY -- your-command</code>
+            <p class="text-xs text-muted-foreground">Use <code class="font-mono">--inject</code> multiple times to inject several credentials. Greywall sets the placeholder as an environment variable <em>and</em> rewrites <code class="font-mono">.env</code> / <code class="font-mono">.env.local</code> files so the real value never reaches the sandbox, regardless of where the application reads it from.</p>
+            <p class="text-xs text-muted-foreground">Once active, the proxy replaces <strong>every occurrence</strong> of the placeholder in HTTP headers and query parameters with the real credential value before forwarding upstream.</p>
+        </div>
+
+        <!-- Add form -->
+        <div class="flex gap-2 mb-4">
+            <input id="cred-label" type="text" placeholder="Label (e.g. ANTHROPIC_API_KEY)"
+                class="flex-1 px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+            <input id="cred-value" type="password" placeholder="Credential value"
+                class="flex-1 px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+            <button id="cred-add-btn" onclick="addCredential()"
+                class="px-4 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90">
+                Add
+            </button>
+        </div>
+        <div id="cred-add-error" class="hidden text-sm text-red-600 mb-3"></div>
+
+        <!-- Credentials list -->
+        <div id="credentials-list">
+            <p class="text-sm text-muted-foreground">Loading...</p>
         </div>
     </div>
+
+    <!-- Active Sessions -->
+    <div class="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Active Sessions</h2>
+        <div id="sessions-list">
+            <p class="text-sm text-muted-foreground">Loading...</p>
+        </div>
+    </div>
+
+    </div><!-- end tab-credentials -->
+
 </div>
 {{end}}
 
@@ -225,6 +320,35 @@
     var notifEnabled = false;
     var notifAvailable = false;
 
+    // --- Tab switching ---
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.settings-tab').forEach(function(btn) {
+            if (btn.getAttribute('data-tab') === tab) {
+                btn.classList.add('bg-primary', 'text-primary-foreground');
+                btn.classList.remove('text-muted-foreground', 'hover:bg-muted');
+            } else {
+                btn.classList.remove('bg-primary', 'text-primary-foreground');
+                btn.classList.add('text-muted-foreground', 'hover:bg-muted');
+            }
+        });
+        ['general', 'mitm', 'credentials'].forEach(function(t) {
+            var panel = document.getElementById('tab-' + t);
+            if (t === tab) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        });
+        history.replaceState(null, '', '#' + tab);
+    };
+
+    // Restore tab from URL hash
+    var hash = window.location.hash.replace('#', '');
+    if (['general', 'mitm', 'credentials'].indexOf(hash) !== -1) {
+        switchTab(hash);
+    }
+
+    // --- Theme ---
     function updateThemeButtons(theme) {
         currentTheme = theme;
         document.querySelectorAll('.theme-btn').forEach(function(btn) {
@@ -260,6 +384,7 @@
         }).catch(function() {});
     };
 
+    // --- Notifications ---
     function updateNotifToggle(enabled, available) {
         notifEnabled = enabled;
         notifAvailable = available;
@@ -336,6 +461,7 @@
         .catch(function() {});
     };
 
+    // --- Advanced / Maintenance ---
     window.redactHeaders = function() {
         var btn = document.getElementById('redact-btn');
         var status = document.getElementById('redact-status');
@@ -372,7 +498,6 @@
             });
     };
 
-    // Listen for redaction progress events from the WebSocket
     window.addEventListener('proxy:maintenance-event', function(e) {
         var data = e.detail.data;
         if (!data || data.task !== 'redact_headers') return;
@@ -475,6 +600,19 @@
             dot.classList.remove('translate-x-5');
             dot.classList.add('translate-x-1');
         }
+        // Update credential protection status banner
+        updateCredStatusBanner(enabled);
+    }
+
+    function updateCredStatusBanner(mitmOn) {
+        var httpEl = document.getElementById('cred-http-status');
+        var httpsEl = document.getElementById('cred-https-status');
+        httpEl.innerHTML = 'HTTP: <span class="text-[var(--color-green)]">protected</span>';
+        if (mitmOn) {
+            httpsEl.innerHTML = 'HTTPS: <span class="text-[var(--color-green)] cursor-help" title="TLS interception is enabled">protected</span>';
+        } else {
+            httpsEl.innerHTML = 'HTTPS: <span class="text-yellow-600 dark:text-yellow-500 cursor-help" title="Enable TLS interception to protect HTTPS traffic">not protected</span>';
+        }
     }
 
     window.toggleMitmSetting = function() {
@@ -530,20 +668,20 @@
                 text.innerHTML += ' <span class="text-muted-foreground">&middot; expires ' + data.expiresAt.split('T')[0] + '</span>';
             }
             document.getElementById('cert-install-section').classList.remove('hidden');
-            // Show install command for the current platform
             var cmd = data.installCommands.linux || data.installCommands.macos || '';
             document.getElementById('cert-install-cmd').textContent = cmd;
         }
 
-        // Download link
         document.getElementById('cert-download-link').href = prefix + '/api/cert/download';
-
     }
 
     function escapeHtml(text) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     window.generateCert = function(force) {
@@ -605,7 +743,6 @@
     window.copyInstallCmd = function() {
         var cmd = document.getElementById('cert-install-cmd').textContent;
         navigator.clipboard.writeText(cmd).then(function() {
-            // Brief visual feedback
             var btn = document.querySelector('#cert-install-section button[onclick="copyInstallCmd()"]');
             if (btn) {
                 btn.innerHTML = '<svg class="h-4 w-4 text-[var(--color-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>';
@@ -617,6 +754,188 @@
     };
 
     loadCertStatus();
+
+    // --- Time helpers ---
+    function formatRelativeTime(date) {
+        var seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 60) return 'just now';
+        var minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return minutes + 'm ago';
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) return hours + 'h ago';
+        var days = Math.floor(hours / 24);
+        return days + 'd ago';
+    }
+
+    function formatDuration(from, to) {
+        var seconds = Math.floor((to.getTime() - from.getTime()) / 1000);
+        if (seconds < 60) return seconds + 's';
+        var minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return minutes + 'm';
+        var hours = Math.floor(minutes / 60);
+        var remainMin = minutes % 60;
+        if (hours < 24) return hours + 'h ' + remainMin + 'm';
+        var days = Math.floor(hours / 24);
+        var remainHours = hours % 24;
+        return days + 'd ' + remainHours + 'h';
+    }
+
+    // --- Credential Protection ---
+    function loadSessions() {
+        fetch(prefix + '/api/sessions')
+            .then(function(r) { return r.json(); })
+            .then(function(sessions) {
+                var el = document.getElementById('sessions-list');
+                if (!sessions || sessions.length === 0) {
+                    el.innerHTML = '<p class="text-sm text-muted-foreground">No active sessions. Sessions are created automatically when greywall launches a sandbox.</p>';
+                    return;
+                }
+                var html = '<div class="space-y-3">';
+                sessions.forEach(function(s) {
+                    html += '<div class="p-3 bg-muted rounded-lg border border-border">';
+                    html += '<div class="flex items-center justify-between mb-2">';
+                    html += '<span class="text-sm font-medium">' + escapeHtml(s.container_name) + '</span>';
+                    html += '<button data-delete-session="' + escapeHtml(s.session_id) + '" class="text-xs text-muted-foreground hover:text-destructive">Expire</button>';
+                    html += '</div>';
+                    // Created / duration
+                    html += '<div class="flex items-center gap-3 text-xs text-muted-foreground mb-2">';
+                    if (s.created_at) {
+                        var created = new Date(s.created_at);
+                        html += '<span title="' + created.toISOString() + '">Created ' + formatRelativeTime(created) + '</span>';
+                        html += '<span>&middot;</span>';
+                        html += '<span>Active for ' + formatDuration(created, new Date()) + '</span>';
+                    }
+                    html += '</div>';
+                    // Credential labels
+                    html += '<div class="flex flex-wrap gap-1.5 mb-2">';
+                    (s.credential_labels || []).forEach(function(label) {
+                        html += '<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-background border border-border rounded">' + escapeHtml(label) + '</span>';
+                    });
+                    html += '</div>';
+                    // Stats
+                    html += '<div class="flex items-center gap-4 text-xs text-muted-foreground">';
+                    html += '<span>' + s.credential_count + ' credential' + (s.credential_count !== 1 ? 's' : '') + '</span>';
+                    html += '<span>' + s.substitution_count + ' substitution' + (s.substitution_count !== 1 ? 's' : '') + '</span>';
+                    html += '</div>';
+                    // Metadata (if present)
+                    if (s.metadata && Object.keys(s.metadata).length > 0) {
+                        html += '<div class="mt-2 pt-2 border-t border-border/50">';
+                        html += '<div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">';
+                        var metaKeys = Object.keys(s.metadata);
+                        metaKeys.forEach(function(key) {
+                            html += '<span class="text-muted-foreground">' + escapeHtml(key) + '</span>';
+                            html += '<span class="font-mono truncate" title="' + escapeHtml(s.metadata[key]) + '">' + escapeHtml(s.metadata[key]) + '</span>';
+                        });
+                        html += '</div>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+                el.innerHTML = html;
+            })
+            .catch(function() {
+                document.getElementById('sessions-list').innerHTML = '<p class="text-sm text-red-600">Failed to load sessions.</p>';
+            });
+    }
+
+    function loadCredentials() {
+        fetch(prefix + '/api/credentials')
+            .then(function(r) { return r.json(); })
+            .then(function(creds) {
+                var el = document.getElementById('credentials-list');
+                if (!creds || creds.length === 0) {
+                    el.innerHTML = '<p class="text-sm text-muted-foreground">No global credentials configured.</p>';
+                    return;
+                }
+                var html = '<div class="space-y-2">';
+                creds.forEach(function(c) {
+                    html += '<div class="flex items-center justify-between p-2 bg-muted rounded border border-border">';
+                    html += '<div class="flex items-center gap-3">';
+                    html += '<span class="text-sm font-medium">' + escapeHtml(c.label) + '</span>';
+                    html += '<span class="text-xs text-muted-foreground font-mono">' + escapeHtml(c.value_preview) + '</span>';
+                    html += '</div>';
+                    html += '<button data-delete-credential="' + escapeHtml(c.id) + '" class="text-xs text-muted-foreground hover:text-destructive px-2 py-1">Delete</button>';
+                    html += '</div>';
+                });
+                html += '</div>';
+                el.innerHTML = html;
+            })
+            .catch(function() {
+                document.getElementById('credentials-list').innerHTML = '<p class="text-sm text-red-600">Failed to load credentials.</p>';
+            });
+    }
+
+    window.addCredential = function() {
+        var label = document.getElementById('cred-label').value.trim();
+        var value = document.getElementById('cred-value').value;
+        var errorEl = document.getElementById('cred-add-error');
+        errorEl.classList.add('hidden');
+
+        if (!label || !value) {
+            errorEl.textContent = 'Both label and value are required.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        var btn = document.getElementById('cred-add-btn');
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+
+        fetch(prefix + '/api/credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ label: label, value: value })
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            if (!res.ok) {
+                errorEl.textContent = res.data.error || 'Failed to add credential.';
+                errorEl.classList.remove('hidden');
+            } else {
+                document.getElementById('cred-label').value = '';
+                document.getElementById('cred-value').value = '';
+                loadCredentials();
+                showToast('Credential added: ' + label);
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            errorEl.textContent = 'Network error.';
+            errorEl.classList.remove('hidden');
+        });
+    };
+
+    function deleteCredential(id) {
+        fetch(prefix + '/api/credentials/' + encodeURIComponent(id), { method: 'DELETE' })
+            .then(function() { loadCredentials(); })
+            .catch(function() {});
+    }
+
+    function deleteSession(id) {
+        fetch(prefix + '/api/sessions/' + encodeURIComponent(id), { method: 'DELETE' })
+            .then(function() { loadSessions(); })
+            .catch(function() {});
+    }
+
+    // Event delegation for dynamically rendered buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-delete-session]');
+        if (btn) { deleteSession(btn.getAttribute('data-delete-session')); return; }
+        btn = e.target.closest('[data-delete-credential]');
+        if (btn) { deleteCredential(btn.getAttribute('data-delete-credential')); return; }
+    });
+
+    loadSessions();
+    loadCredentials();
+
+    // Listen for session events to refresh
+    window.addEventListener('proxy:session-event', function() {
+        loadSessions();
+    });
 
     // Load settings from server
     fetch(prefix + '/api/settings')

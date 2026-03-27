@@ -171,6 +171,11 @@ var funcMap = template.FuncMap{
 	"isExpired": func(t time.Time) bool {
 		return time.Now().After(t)
 	},
+	"credLabels": func(raw string) []string {
+		var labels []string
+		json.Unmarshal([]byte(raw), &labels)
+		return labels
+	},
 	"derefStr": func(s *string) string {
 		if s == nil {
 			return ""
@@ -856,11 +861,13 @@ func RegisterHTMXRoutes(r *gin.RouterGroup, db *greyproxy.DB, bus *greyproxy.Eve
 		container := c.Query("container")
 		destination := c.Query("destination")
 		method := c.Query("method")
+		sessionID := c.Query("session_id")
 
 		f := greyproxy.TransactionFilter{
 			Container:   container,
 			Destination: destination,
 			Method:      method,
+			SessionID:   sessionID,
 			Limit:       limit,
 			Offset:      offset,
 		}

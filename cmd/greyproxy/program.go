@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 	"syscall"
 
 	"github.com/andybalholm/brotli"
@@ -43,8 +44,9 @@ type program struct {
 	srvGreyproxy *greyproxy.Service
 	srvProfiling *http.Server
 
-	cancel          context.CancelFunc
-	assemblerCancel context.CancelFunc
+	cancel           context.CancelFunc
+	assemblerCancel  context.CancelFunc
+	credStoreCancel  context.CancelFunc
 }
 
 func (p *program) initParser() {
@@ -204,6 +206,9 @@ func (p *program) Stop(s service.Service) error {
 		p.srvProfiling.Close()
 		logger.Default().Debug("service @profiling shutdown")
 	}
+	if p.credStoreCancel != nil {
+		p.credStoreCancel()
+	}
 	if p.assemblerCancel != nil {
 		p.assemblerCancel()
 	}
@@ -322,6 +327,44 @@ func (p *program) buildGreyproxyService() error {
 		gostx.SetGlobalMitmEnabled(enabled)
 	})
 
+	// Initialize credential substitution encryption key and store
+	encKey, newKey, err := greyproxy.LoadOrGenerateKey(greyproxyDataHome())
+	if err != nil {
+		log.Warnf("credential substitution disabled: %v", err)
+	} else {
+		shared.EncryptionKey = encKey
+		credStore, err := greyproxy.NewCredentialStore(shared.DB, encKey, shared.Bus)
+		if err != nil {
+			log.Warnf("credential store init failed: %v", err)
+		} else {
+			shared.CredentialStore = credStore
+			if newKey {
+				if sessions, globals, err := credStore.PurgeUnreadableCredentials(); err == nil && (sessions > 0 || globals > 0) {
+					log.Infof("purged %d sessions and %d global credentials (new encryption key)", sessions, globals)
+				}
+			}
+			credStoreCtx, credStoreCancel := context.WithCancel(context.Background())
+			p.credStoreCancel = credStoreCancel
+			credStore.StartCleanupLoop(credStoreCtx, 60*time.Second)
+			// Wire credential substitution into the MITM pipeline
+			gostx.SetGlobalCredentialSubstituter(func(req *http.Request) *gostx.CredentialSubstitutionInfo {
+				result := credStore.SubstituteRequest(req)
+				if result.Count == 0 {
+					return nil
+				}
+				var sessionID string
+				if len(result.SessionIDs) > 0 {
+					sessionID = result.SessionIDs[0]
+				}
+				return &gostx.CredentialSubstitutionInfo{
+					Labels:    result.Labels,
+					SessionID: sessionID,
+				}
+			})
+			log.Infof("credential store loaded: %d mappings from %d sessions", credStore.Size(), credStore.SessionCount())
+		}
+	}
+
 	shared.Version = version
 
 	// Collect listening ports for the health endpoint
@@ -375,20 +418,22 @@ func (p *program) buildGreyproxyService() error {
 			redactedRespHeaders := redactor.Redact(info.ResponseHeaders)
 
 			txn, err := greyproxy.CreateHttpTransaction(shared.DB, greyproxy.HttpTransactionCreateInput{
-				ContainerName:       containerName,
-				DestinationHost:     host,
-				DestinationPort:     port,
-				Method:              info.Method,
-				URL:                 "https://" + info.Host + info.URI,
-				RequestHeaders:      redactedReqHeaders,
-				RequestBody:         reqBody,
-				RequestContentType:  reqCT,
-				StatusCode:          info.StatusCode,
-				ResponseHeaders:     redactedRespHeaders,
-				ResponseBody:        respBody,
-				ResponseContentType: respCT,
-				DurationMs:          info.DurationMs,
-				Result:              "auto",
+				ContainerName:          containerName,
+				DestinationHost:        host,
+				DestinationPort:        port,
+				Method:                 info.Method,
+				URL:                    "https://" + info.Host + info.URI,
+				RequestHeaders:         redactedReqHeaders,
+				RequestBody:            reqBody,
+				RequestContentType:     reqCT,
+				StatusCode:             info.StatusCode,
+				ResponseHeaders:        redactedRespHeaders,
+				ResponseBody:           respBody,
+				ResponseContentType:    respCT,
+				DurationMs:             info.DurationMs,
+				Result:                 "auto",
+				SubstitutedCredentials: info.SubstitutedCredentials,
+				SessionID:              info.SessionID,
 			})
 			if err != nil {
 				log.Warnf("failed to store HTTP transaction: %v", err)
