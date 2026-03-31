@@ -24,6 +24,7 @@ greyproxy:
   notifications:
     enabled: true
 
+
 services:
   # HTTP/HTTPS proxy on port 3128 (backward compatible with Squid)
   - name: http-proxy

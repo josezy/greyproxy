@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/bypass"
@@ -12,6 +13,10 @@ import (
 	ctxvalue "github.com/greyhavenhq/greyproxy/internal/gostx/ctx"
 	greyproxy "github.com/greyhavenhq/greyproxy/internal/greyproxy"
 )
+
+type ContainerResolver interface {
+	ResolveIP(ip string) (name string, id string)
+}
 
 // Bypass implements bypass.Bypass.
 // This is the main ACL enforcement point — it evaluates every destination
@@ -25,16 +30,18 @@ type Bypass struct {
 	bus         *greyproxy.EventBus
 	waiters     *greyproxy.WaiterTracker
 	connTracker *greyproxy.ConnTracker
+	docker      ContainerResolver // optional; nil means no Docker resolution
 	log         logger.Logger
 }
 
-func NewBypass(db *greyproxy.DB, cache *greyproxy.DNSCache, bus *greyproxy.EventBus, waiters *greyproxy.WaiterTracker, connTracker *greyproxy.ConnTracker) *Bypass {
+func NewBypass(db *greyproxy.DB, cache *greyproxy.DNSCache, bus *greyproxy.EventBus, waiters *greyproxy.WaiterTracker, connTracker *greyproxy.ConnTracker, docker ContainerResolver) *Bypass {
 	return &Bypass{
 		db:          db,
 		cache:       cache,
 		bus:         bus,
 		waiters:     waiters,
 		connTracker: connTracker,
+		docker:      docker,
 		log: logger.Default().WithFields(map[string]any{
 			"kind":   "bypass",
 			"bypass": "greyproxy",
@@ -56,6 +63,11 @@ const gracePeriod = 30 * time.Second
 func (b *Bypass) Contains(ctx context.Context, network, addr string, opts ...bypass.Option) bool {
 	start := time.Now()
 
+	var o bypass.Options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
 		host = addr
@@ -65,7 +77,24 @@ func (b *Bypass) Contains(ctx context.Context, network, addr string, opts ...byp
 
 	// Get client identity from context (set by auther)
 	clientID := string(ctxvalue.ClientIDFromContext(ctx))
-	containerName, containerID := ResolveIdentity(clientID)
+
+	// Extract the real source IP from context. This is more reliable than parsing
+	// clientID, which may be "unknown" in HTTP proxy mode before the auther runs.
+	srcIP := ""
+	if srcAddr := ctxvalue.SrcAddrFromContext(ctx); srcAddr != nil {
+		srcIP, _, _ = net.SplitHostPort(srcAddr.String())
+	}
+
+	// Resolve container identity: Docker socket lookup takes priority when enabled,
+	// so rules can match full Docker container names (e.g. "my-app-1").
+	// Falls back to username-based or IP-based identity when Docker is unavailable.
+	var containerName, containerID string
+	if b.docker != nil && srcIP != "" {
+		containerName, containerID = b.docker.ResolveIP(srcIP)
+	}
+	if containerName == "" {
+		containerName, containerID = ResolveIdentity(clientID, srcIP)
+	}
 
 	// Resolve hostname
 	resolvedHostname := b.resolveHostname(host)
@@ -128,7 +157,7 @@ func (b *Bypass) Contains(ctx context.Context, network, addr string, opts ...byp
 		result = "allowed"
 	}
 
-	go b.logRequest(containerName, containerID, host, port, resolvedHostname, result, ruleID, &elapsed)
+	go b.logRequest(containerName, containerID, host, port, resolvedHostname, methodFromService(o.Service), result, ruleID, &elapsed)
 
 	if allowed {
 		b.log.Debugf("ALLOW %s -> %s:%d (%s) rule=%v", containerName, matchHost, port, network, ruleID)
@@ -191,25 +220,45 @@ func (b *Bypass) resolveHostname(host string) string {
 	return b.cache.ResolveIP(host)
 }
 
-// ResolveIdentity maps a composite client ID ("ip|username") to a container name and ID.
-func ResolveIdentity(clientID string) (containerName, containerID string) {
-	ip, username := ParseClientID(clientID)
+// ResolveIdentity derives a display name for the connecting client.
+// srcIP, when non-empty, is preferred over parsing the IP from clientID because
+// clientID may be "unknown" in HTTP proxy mode before the auther runs.
+// Pass srcIP as "" when only a clientID is available (e.g. MITM hooks).
+func ResolveIdentity(clientID, srcIP string) (containerName, containerID string) {
+	_, username := ParseClientID(clientID)
 
 	if username != "" && username != "proxy" {
 		return username, ""
 	}
 
+	ip := srcIP
+	if ip == "" {
+		ip, _ = ParseClientID(clientID)
+	}
 	return fmt.Sprintf("unknown-%s", ip), ""
 }
 
-func (b *Bypass) logRequest(containerName, containerID, destHost string, destPort int, resolvedHostname, result string, ruleID *int64, responseTimeMs *int64) {
+// methodFromService maps a gost service name (e.g. "http-proxy", "socks5") to the
+// protocol label stored in request_logs. Falls back to "unknown".
+func methodFromService(service string) string {
+	switch {
+	case strings.Contains(service, "http"):
+		return "HTTP"
+	case strings.Contains(service, "socks"):
+		return "SOCKS5"
+	default:
+		return "unknown"
+	}
+}
+
+func (b *Bypass) logRequest(containerName, containerID, destHost string, destPort int, resolvedHostname, method, result string, ruleID *int64, responseTimeMs *int64) {
 	_, err := greyproxy.CreateLogEntry(b.db, greyproxy.LogCreateInput{
 		ContainerName:    containerName,
 		ContainerID:      containerID,
 		DestinationHost:  destHost,
 		DestinationPort:  destPort,
 		ResolvedHostname: resolvedHostname,
-		Method:           "SOCKS5",
+		Method:           method,
 		Result:           result,
 		RuleID:           ruleID,
 		ResponseTimeMs:   responseTimeMs,

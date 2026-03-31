@@ -374,6 +374,9 @@ func (p *program) buildGreyproxyService() error {
 		gaCfg.Resolver = "resolver-0"
 	}
 
+
+	applyDockerEnvOverrides(&gaCfg)
+
 	log := logger.Default().WithFields(map[string]any{"kind": "service", "service": "@greyproxy"})
 
 	// Create shared state (this also opens the DB)
@@ -492,7 +495,7 @@ func (p *program) buildGreyproxyService() error {
 		if port == 0 {
 			port = 443
 		}
-		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName)
+		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName, "")
 		go func() {
 			reqCT := info.RequestHeaders.Get("Content-Type")
 			respCT := info.ResponseHeaders.Get("Content-Type")
@@ -553,7 +556,7 @@ func (p *program) buildGreyproxyService() error {
 		if port == 0 {
 			port = 443
 		}
-		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName)
+		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName, "")
 		go func() {
 			if err := greyproxy.UpdateLatestLogMitmSkipReason(shared.DB, containerName, host, port, info.MitmSkipReason); err != nil {
 				log.Warnf("failed to update MITM skip reason: %v", err)
@@ -571,7 +574,7 @@ func (p *program) buildGreyproxyService() error {
 		if port == 0 {
 			port = 443
 		}
-		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName)
+		containerName, _ := greyproxy_plugins.ResolveIdentity(info.ContainerName, "")
 
 		// Resolve hostname from cache
 		resolvedHostname := shared.Cache.ResolveIP(host)
@@ -586,10 +589,25 @@ func (p *program) buildGreyproxyService() error {
 		return nil
 	})
 
+	// Initialize Docker resolver if configured.
+	var dockerResolver greyproxy_plugins.ContainerResolver
+	if gaCfg.Docker.Enabled {
+		socketPath := gaCfg.Docker.Socket
+		if socketPath == "" {
+			socketPath = "/var/run/docker.sock"
+		}
+		cacheTTL := gaCfg.Docker.CacheTTL
+		if cacheTTL == 0 {
+			cacheTTL = 30 * time.Second
+		}
+		dockerResolver = greyproxy.NewDockerResolver(socketPath, cacheTTL)
+		log.Infof("docker resolver enabled (socket=%s, cacheTTL=%s)", socketPath, cacheTTL)
+	}
+
 	// Create and register gost plugins
 	autherPlugin := greyproxy_plugins.NewAuther()
 	admissionPlugin := greyproxy_plugins.NewAdmission()
-	bypassPlugin := greyproxy_plugins.NewBypass(shared.DB, shared.Cache, shared.Bus, shared.Waiters, shared.ConnTracker)
+	bypassPlugin := greyproxy_plugins.NewBypass(shared.DB, shared.Cache, shared.Bus, shared.Waiters, shared.ConnTracker, dockerResolver)
 	resolverPlugin := greyproxy_plugins.NewResolver(shared.Cache)
 
 	registry.AutherRegistry().Register(gaCfg.Auther, autherPlugin)
@@ -740,4 +758,22 @@ func decompressBody(body []byte, encoding string) []byte {
 		return body
 	}
 	return decoded
+}
+
+// applyDockerEnvOverrides configures Docker resolution from environment variables.
+// Docker is disabled by default; use these env vars to opt in:
+//
+//   - GREYPROXY_DOCKER_ENABLED=true  → enable Docker resolution
+//   - GREYPROXY_DOCKER_ENABLED=false → explicitly disable (default)
+//   - GREYPROXY_DOCKER_SOCKET=<path> → socket path (default: /var/run/docker.sock)
+func applyDockerEnvOverrides(cfg *greyproxy.Config) {
+	switch os.Getenv("GREYPROXY_DOCKER_ENABLED") {
+	case "true":
+		cfg.Docker.Enabled = true
+	case "false":
+		cfg.Docker.Enabled = false
+	}
+	if v := os.Getenv("GREYPROXY_DOCKER_SOCKET"); v != "" {
+		cfg.Docker.Socket = v
+	}
 }
