@@ -710,6 +710,8 @@ func (p *program) buildGreyproxyService() error {
 				reqBody := middleware.RequestBodyFromContext(ctx)
 				respBody, _ := io.ReadAll(resp.Body)
 				resp.Body = io.NopCloser(bytes.NewReader(respBody))
+				mwBody := truncateBody(respBody)
+				mwBody, _ = middleware.DecompressBody(mwBody, resp.Header.Get("Content-Encoding"))
 				msg := middleware.ResponseMsg{
 					Type: "http-response", ID: newUUID(),
 					Host: req.Host, Method: req.Method, URI: req.RequestURI,
@@ -717,7 +719,7 @@ func (p *program) buildGreyproxyService() error {
 					RequestHeaders:  req.Header.Clone(),
 					RequestBody:     truncateBody(reqBody),
 					ResponseHeaders: resp.Header.Clone(),
-					ResponseBody:    truncateBody(respBody),
+					ResponseBody:    mwBody,
 					Container:       container,
 				}
 				d, _ := mwClient.Send(ctx, msg)
@@ -729,6 +731,8 @@ func (p *program) buildGreyproxyService() error {
 				if !middleware.MatchesFilter(rh.Filters, info.Host, info.URI, info.Method, respCT, info.ContainerName, true) {
 					return nil
 				}
+				respBody := truncateBody(info.ResponseBody)
+				respBody, _ = middleware.DecompressBody(respBody, info.ResponseHeaders.Get("Content-Encoding"))
 				msg := middleware.ResponseMsg{
 					Type: "http-response", ID: newUUID(),
 					Host: info.Host, Method: info.Method, URI: info.URI,
@@ -736,7 +740,7 @@ func (p *program) buildGreyproxyService() error {
 					RequestHeaders:  info.RequestHeaders,
 					RequestBody:     truncateBody(info.RequestBody),
 					ResponseHeaders: info.ResponseHeaders,
-					ResponseBody:    truncateBody(info.ResponseBody),
+					ResponseBody:    respBody,
 					Container:       info.ContainerName,
 					DurationMs:      info.DurationMs,
 				}
