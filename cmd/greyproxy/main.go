@@ -28,13 +28,14 @@ func (l *stringList) Set(value string) error {
 }
 
 var (
-	cfgFile      string
-	outputFormat string
-	services     stringList
-	nodes        stringList
-	debug        bool
-	trace        bool
-	metricsAddr string
+	cfgFile         string
+	outputFormat    string
+	services        stringList
+	nodes           stringList
+	debug           bool
+	trace           bool
+	metricsAddr     string
+	middlewareURLFlag string
 )
 
 func init() {
@@ -92,7 +93,15 @@ func parseFlags() {
 	flag.BoolVar(&debug, "D", false, "debug mode")
 	flag.BoolVar(&trace, "DD", false, "trace mode")
 	flag.StringVar(&metricsAddr, "metrics", "", "metrics service address")
+	flag.StringVar(&middlewareURLFlag, "middleware", "", "middleware service URL (ws:// or http://)")
 	flag.Parse()
+
+	// Normalize http(s):// to ws(s):// for the middleware URL
+	if strings.HasPrefix(middlewareURLFlag, "http://") {
+		middlewareURLFlag = "ws://" + strings.TrimPrefix(middlewareURLFlag, "http://")
+	} else if strings.HasPrefix(middlewareURLFlag, "https://") {
+		middlewareURLFlag = "wss://" + strings.TrimPrefix(middlewareURLFlag, "https://")
+	}
 
 	if printVersion {
 		fmt.Fprintf(os.Stdout, "greyproxy %s (%s %s/%s)\n  built:  %s\n  commit: %s\n",
