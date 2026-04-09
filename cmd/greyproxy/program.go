@@ -596,6 +596,22 @@ func (p *program) buildGreyproxyService() error {
 		return nil
 	})
 
+	// Create PII middleware from settings
+	piiMw := middleware.NewPIIMiddleware(middleware.PIIConfig{
+		Enabled:   resolvedSettings.PIIEnabled,
+		Action:    resolvedSettings.PIIAction,
+		Types:     resolvedSettings.PIITypes,
+		Allowlist: resolvedSettings.PIIAllowlist,
+	})
+	shared.Settings.OnPIIChanged(func(s greyproxy.ResolvedSettings) {
+		piiMw.UpdateConfig(middleware.PIIConfig{
+			Enabled:   s.PIIEnabled,
+			Action:    s.PIIAction,
+			Types:     s.PIITypes,
+			Allowlist: s.PIIAllowlist,
+		})
+	})
+
 	// Wire middleware WebSocket client if configured
 	mwURL := middlewareURLFlag
 	if mwURL == "" && gaCfg.Middleware != nil {
@@ -649,10 +665,14 @@ func (p *program) buildGreyproxyService() error {
 			return body
 		}
 
-		// Plain HTTP + MITM request hooks
+		// Plain HTTP + MITM request hooks (PII first, then external middleware)
 		if reqHook != nil {
 			rh := *reqHook // capture for closures
 			gostx.GlobalProxyRequestHook = func(ctx context.Context, req *http.Request, container string) *gostx.ProxyRequestDecision {
+				// PII middleware runs first
+				if d := piiMw.HandleProxyRequest(ctx, req, container); d != nil {
+					return d
+				}
 				ct := req.Header.Get("Content-Type")
 				if !middleware.MatchesFilter(rh.Filters, req.Host, req.URL.Path, req.Method, ct, container, false) {
 					return nil
@@ -670,6 +690,10 @@ func (p *program) buildGreyproxyService() error {
 			}
 			// MITM request hook (Step 1.5)
 			gostx.SetGlobalMitmRequestMiddlewareHook(func(ctx context.Context, req *http.Request, container string) error {
+				// PII middleware runs first
+				if err := piiMw.HandleMitmRequest(ctx, req, container); err != nil {
+					return err
+				}
 				ct := req.Header.Get("Content-Type")
 				if !middleware.MatchesFilter(rh.Filters, req.Host, req.URL.Path, req.Method, ct, container, true) {
 					return nil
@@ -696,6 +720,14 @@ func (p *program) buildGreyproxyService() error {
 					}
 				}
 				return nil
+			})
+		} else {
+			// No external middleware, but PII still needs hooks
+			gostx.GlobalProxyRequestHook = func(ctx context.Context, req *http.Request, container string) *gostx.ProxyRequestDecision {
+				return piiMw.HandleProxyRequest(ctx, req, container)
+			}
+			gostx.SetGlobalMitmRequestMiddlewareHook(func(ctx context.Context, req *http.Request, container string) error {
+				return piiMw.HandleMitmRequest(ctx, req, container)
 			})
 		}
 
@@ -748,6 +780,14 @@ func (p *program) buildGreyproxyService() error {
 				return mapMitmResponseDecision(d)
 			})
 		}
+	} else {
+		// No external middleware configured, but PII still needs hooks
+		gostx.GlobalProxyRequestHook = func(ctx context.Context, req *http.Request, container string) *gostx.ProxyRequestDecision {
+			return piiMw.HandleProxyRequest(ctx, req, container)
+		}
+		gostx.SetGlobalMitmRequestMiddlewareHook(func(ctx context.Context, req *http.Request, container string) error {
+			return piiMw.HandleMitmRequest(ctx, req, container)
+		})
 	}
 
 	// Create the allow-all manager (in-memory, resets on restart).
