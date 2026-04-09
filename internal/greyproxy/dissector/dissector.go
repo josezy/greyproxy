@@ -1,6 +1,9 @@
 package dissector
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // Dissector extracts structured LLM conversation data from HTTP transactions.
 // Inspired by Wireshark's protocol dissector concept: each implementation
@@ -8,6 +11,10 @@ import "time"
 type Dissector interface {
 	// Name returns the provider name (e.g. "anthropic").
 	Name() string
+
+	// Description returns a short human-readable description of what API
+	// format this dissector handles, shown in the UI.
+	Description() string
 
 	// CanHandle returns true if this dissector can parse the given HTTP transaction.
 	CanHandle(url, method, host string) bool
@@ -18,21 +25,23 @@ type Dissector interface {
 
 // ExtractionInput contains the raw HTTP transaction data to parse.
 type ExtractionInput struct {
-	TransactionID   int64
-	URL             string
-	Method          string
-	Host            string
-	RequestBody     []byte
-	ResponseBody    []byte
-	RequestCT       string // Content-Type of request
-	ResponseCT      string // Content-Type of response
-	Timestamp       time.Time
-	ContainerName   string
-	DurationMs      int64
+	TransactionID  int64
+	URL            string
+	Method         string
+	Host           string
+	RequestBody    []byte
+	ResponseBody   []byte
+	RequestCT      string // Content-Type of request
+	ResponseCT     string // Content-Type of response
+	RequestHeaders http.Header
+	Timestamp      time.Time
+	ContainerName  string
+	DurationMs     int64
 }
 
 // ExtractionResult contains structured data extracted from an HTTP transaction.
 type ExtractionResult struct {
+	Provider     string // dissector name that produced this result (e.g. "anthropic", "openai")
 	SessionID    string
 	Model        string
 	Messages     []Message
@@ -40,6 +49,7 @@ type ExtractionResult struct {
 	Tools        []Tool
 	SSEResponse  *SSEResponseData
 	MessageCount int
+	ClientHint   string // optional hint for client detection (e.g. "codex" from WS metadata)
 }
 
 // Message represents a single message in a conversation.
@@ -104,6 +114,9 @@ func Register(d Dissector) {
 }
 
 // FindDissector returns the first dissector that can handle the given request.
+// This uses the CanHandle() method on each dissector, which is the fallback
+// when no EndpointRegistry is available. Prefer FindDissectorByName() with
+// registry-based routing for production use.
 func FindDissector(url, method, host string) Dissector {
 	for _, d := range registry {
 		if d.CanHandle(url, method, host) {
@@ -113,6 +126,33 @@ func FindDissector(url, method, host string) Dissector {
 	return nil
 }
 
+// FindDissectorByName returns the dissector with the given name, or nil.
+// Used by the EndpointRegistry to resolve decoder names to actual dissectors.
+func FindDissectorByName(name string) Dissector {
+	for _, d := range registry {
+		if d.Name() == name {
+			return d
+		}
+	}
+	return nil
+}
+
+// DissectorInfo holds metadata about a registered dissector.
+type DissectorInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// RegisteredDissectors returns info about all registered dissectors.
+func RegisteredDissectors() []DissectorInfo {
+	infos := make([]DissectorInfo, len(registry))
+	for i, d := range registry {
+		infos[i] = DissectorInfo{Name: d.Name(), Description: d.Description()}
+	}
+	return infos
+}
+
 func init() {
 	Register(&AnthropicDissector{})
+	Register(&OpenAIDissector{})
 }

@@ -18,6 +18,10 @@
             class="settings-tab flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-border text-muted-foreground hover:bg-muted">
             Credentials
         </button>
+        <button type="button" onclick="switchTab('conversations')" data-tab="conversations"
+            class="settings-tab flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-border text-muted-foreground hover:bg-muted">
+            Conversations
+        </button>
     </div>
 
     <!-- ==================== General Tab ==================== -->
@@ -107,22 +111,6 @@
         <div id="advanced-section" class="hidden mt-4">
             <div class="bg-card border border-border rounded-lg p-6">
                 <h2 class="text-lg font-semibold mb-4">Maintenance</h2>
-
-                <!-- Conversation rebuild -->
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium">Rebuild conversations</p>
-                        <p class="text-sm text-muted-foreground">Reprocess all HTTP transactions through the conversation assembler. Useful after upgrading when the analysis logic has improved.</p>
-                        <p id="assembler-version-info" class="text-xs text-muted-foreground mt-1"></p>
-                    </div>
-                    <button id="rebuild-btn" onclick="rebuildConversations()"
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 flex-shrink-0 ml-4">
-                        Rebuild
-                    </button>
-                </div>
-                <div id="rebuild-status" class="hidden mt-3 text-sm"></div>
-
-                <hr class="my-6 border-border">
 
                 <!-- Redact existing headers -->
                 <div class="flex items-center justify-between">
@@ -309,6 +297,102 @@
 
     </div><!-- end tab-credentials -->
 
+    <!-- ==================== Conversations Tab ==================== -->
+    <div id="tab-conversations" class="hidden">
+
+    <!-- Conversation Tracking Toggle -->
+    <div class="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Conversation Tracking</h2>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <p class="font-medium">Enable conversation tracking</p>
+                <p class="text-sm text-muted-foreground">Automatically reconstruct LLM conversations from intercepted API traffic</p>
+            </div>
+            <button id="conv-toggle-btn" type="button" onclick="toggleConversations()"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background cursor-pointer bg-primary"
+                role="switch" aria-checked="true">
+                <span id="conv-toggle-dot"
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-5"></span>
+            </button>
+        </div>
+
+        <!-- Rebuild -->
+        <hr class="my-4 border-border">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="font-medium">Rebuild conversations</p>
+                <p class="text-sm text-muted-foreground">Reprocess all HTTP transactions through the conversation assembler. Useful after adding endpoint rules or upgrading.</p>
+                <p id="assembler-version-info" class="text-xs text-muted-foreground mt-1"></p>
+            </div>
+            <button id="rebuild-btn" onclick="rebuildConversations()"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 flex-shrink-0 ml-4">
+                Rebuild
+            </button>
+        </div>
+        <div id="rebuild-status" class="hidden mt-3 text-sm"></div>
+    </div>
+
+    <!-- Info block -->
+    <div class="flex gap-3 p-4 mb-6 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20">
+        <svg class="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+        <p class="text-sm text-blue-900 dark:text-blue-200">Endpoint rules tell GreyProxy how to parse LLM API traffic. Built-in rules cover major providers (Anthropic, OpenAI, Google). Add custom rules for self-hosted endpoints like LiteLLM, Ollama, or any OpenAI-compatible API. After adding a rule, click <strong>Rebuild</strong> above to reprocess existing traffic.</p>
+    </div>
+
+    <!-- Add Rule -->
+    <div class="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Add Endpoint Rule</h2>
+        <p class="text-xs text-muted-foreground mb-3">Both host and path support <code class="font-mono bg-muted px-1 rounded">*</code> as a wildcard. For example: <code class="font-mono bg-muted px-1 rounded">*.example.com</code> or <code class="font-mono bg-muted px-1 rounded">/v1/*/completions</code></p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Host pattern</label>
+                <input id="ep-host" type="text" placeholder="litellm.example.com or *.local"
+                    class="w-full px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Path pattern</label>
+                <input id="ep-path" type="text" placeholder="/v1/chat/completions" value="/v1/chat/completions"
+                    class="w-full px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Decoder</label>
+                <select id="ep-decoder"
+                    class="w-full px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Method</label>
+                <select id="ep-method"
+                    class="w-full px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="POST" selected>POST</option>
+                    <option value="WebSocket">WebSocket</option>
+                    <option value="*">* (any)</option>
+                    <option value="GET">GET</option>
+                    <option value="PUT">PUT</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="ep-add-btn" onclick="addEndpointRule()"
+                class="px-4 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90">
+                Add Rule
+            </button>
+            <span id="ep-add-error" class="hidden text-sm text-red-600"></span>
+        </div>
+    </div>
+
+    <!-- Rules List -->
+    <div class="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Endpoint Rules</h2>
+        <div id="endpoint-rules-list">
+            <p class="text-sm text-muted-foreground">Loading...</p>
+        </div>
+    </div>
+
+    </div><!-- end tab-conversations -->
+
 </div>
 {{end}}
 
@@ -331,7 +415,7 @@
                 btn.classList.add('text-muted-foreground', 'hover:bg-muted');
             }
         });
-        ['general', 'mitm', 'credentials'].forEach(function(t) {
+        ['general', 'mitm', 'credentials', 'conversations'].forEach(function(t) {
             var panel = document.getElementById('tab-' + t);
             if (t === tab) {
                 panel.classList.remove('hidden');
@@ -344,7 +428,7 @@
 
     // Restore tab from URL hash
     var hash = window.location.hash.replace('#', '');
-    if (['general', 'mitm', 'credentials'].indexOf(hash) !== -1) {
+    if (['general', 'mitm', 'credentials', 'conversations'].indexOf(hash) !== -1) {
         switchTab(hash);
     }
 
@@ -957,6 +1041,260 @@
         loadSessions();
     });
 
+    // --- Conversations Toggle ---
+    var convEnabled = true;
+
+    function updateConvToggle(enabled) {
+        convEnabled = enabled;
+        var btn = document.getElementById('conv-toggle-btn');
+        var dot = document.getElementById('conv-toggle-dot');
+        btn.setAttribute('aria-checked', String(enabled));
+        if (enabled) {
+            btn.classList.add('bg-primary');
+            btn.classList.remove('bg-muted');
+            dot.classList.add('translate-x-5');
+            dot.classList.remove('translate-x-1');
+        } else {
+            btn.classList.remove('bg-primary');
+            btn.classList.add('bg-muted');
+            dot.classList.remove('translate-x-5');
+            dot.classList.add('translate-x-1');
+        }
+    }
+
+    window.toggleConversations = function() {
+        var newState = !convEnabled;
+        fetch(prefix + '/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversations: { enabled: newState } })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            updateConvToggle(data.conversations.enabled);
+        })
+        .catch(function() {});
+    };
+
+    // --- Endpoint Rules ---
+    function loadDissectors() {
+        fetch(prefix + '/api/dissectors')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var dissectors = data.dissectors || [];
+                var sel = document.getElementById('ep-decoder');
+                sel.innerHTML = '';
+                dissectors.forEach(function(d) {
+                    var opt = document.createElement('option');
+                    opt.value = d.name;
+                    opt.textContent = d.name + ' — ' + d.description;
+                    if (d.name === 'openai-chat') opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            })
+            .catch(function() {});
+    }
+
+    // Group rules that share host+path+decoder into a single display entry.
+    // This collapses WS_REQ/WS_RESP pairs and any other method variants.
+    function groupRules(rules) {
+        var groups = [];
+        var seen = {};
+        rules.forEach(function(rule) {
+            var key = rule.host_pattern + '|' + rule.path_pattern + '|' + rule.decoder_name + '|' + rule.user_defined;
+            if (seen[key]) {
+                seen[key].methods.push(rule.method);
+                seen[key].ids.push(rule.id);
+            } else {
+                var group = {
+                    host_pattern: rule.host_pattern,
+                    path_pattern: rule.path_pattern,
+                    decoder_name: rule.decoder_name,
+                    methods: [rule.method],
+                    ids: [rule.id],
+                    priority: rule.priority,
+                    enabled: rule.enabled,
+                    user_defined: rule.user_defined
+                };
+                seen[key] = group;
+                groups.push(group);
+            }
+        });
+        return groups;
+    }
+
+    function loadEndpointRules() {
+        fetch(prefix + '/api/endpoint-rules')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var el = document.getElementById('endpoint-rules-list');
+                var rules = data.rules || [];
+                if (rules.length === 0) {
+                    el.innerHTML = '<p class="text-sm text-muted-foreground">No endpoint rules configured.</p>';
+                    return;
+                }
+
+                var grouped = groupRules(rules);
+                var builtinGroups = grouped.filter(function(g) { return !g.user_defined; });
+                var userGroups = grouped.filter(function(g) { return g.user_defined; });
+
+                var html = '';
+
+                if (userGroups.length > 0) {
+                    html += '<div class="mb-4"><p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Custom</p>';
+                    html += '<div class="space-y-2">';
+                    userGroups.forEach(function(group) {
+                        html += renderEndpointGroup(group, true);
+                    });
+                    html += '</div></div>';
+                }
+
+                html += '<div><p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Built-in</p>';
+                html += '<div class="space-y-2">';
+                builtinGroups.forEach(function(group) {
+                    html += renderEndpointGroup(group, false);
+                });
+                html += '</div></div>';
+
+                el.innerHTML = html;
+            })
+            .catch(function() {
+                document.getElementById('endpoint-rules-list').innerHTML = '<p class="text-sm text-red-600">Failed to load endpoint rules.</p>';
+            });
+    }
+
+    function formatMethods(methods) {
+        // Collapse WS_REQ+WS_RESP into "WebSocket"
+        var hasWsReq = methods.indexOf('WS_REQ') !== -1;
+        var hasWsResp = methods.indexOf('WS_RESP') !== -1;
+        var other = methods.filter(function(m) { return m !== 'WS_REQ' && m !== 'WS_RESP'; });
+        var parts = [];
+        if (hasWsReq && hasWsResp) {
+            parts.push('WebSocket');
+        } else if (hasWsReq) {
+            parts.push('WS_REQ');
+        } else if (hasWsResp) {
+            parts.push('WS_RESP');
+        }
+        return parts.concat(other);
+    }
+
+    function renderEndpointGroup(group, canDelete) {
+        var enabledBadge = group.enabled
+            ? '<span class="text-xs text-[var(--color-green)]">enabled</span>'
+            : '<span class="text-xs text-muted-foreground">disabled</span>';
+        var methods = formatMethods(group.methods);
+        var html = '<div class="flex items-center justify-between p-2.5 bg-muted rounded border border-border">';
+        html += '<div class="flex items-center gap-3 min-w-0 flex-1">';
+        html += '<div class="min-w-0 flex-1">';
+        html += '<div class="flex items-center gap-2 flex-wrap">';
+        html += '<span class="text-sm font-medium font-mono">' + escapeHtml(group.host_pattern) + '</span>';
+        html += '<span class="text-xs text-muted-foreground font-mono">' + escapeHtml(group.path_pattern) + '</span>';
+        methods.forEach(function(m) {
+            html += '<span class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-background border border-border rounded">' + escapeHtml(m) + '</span>';
+        });
+        html += '</div>';
+        html += '<div class="flex items-center gap-2 mt-0.5">';
+        html += '<span class="text-xs text-muted-foreground">decoder: <span class="font-medium text-foreground">' + escapeHtml(group.decoder_name) + '</span></span>';
+        html += enabledBadge;
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+        if (canDelete) {
+            // Delete all rules in the group
+            html += '<button data-delete-endpoint-rules="' + group.ids.join(',') + '" class="text-xs text-muted-foreground hover:text-destructive px-2 py-1 shrink-0">Delete</button>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function createRule(host, path, method, decoder) {
+        return fetch(prefix + '/api/endpoint-rules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                host_pattern: host,
+                path_pattern: path,
+                method: method,
+                decoder_name: decoder,
+                priority: 10,
+                enabled: true
+            })
+        }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); });
+    }
+
+    window.addEndpointRule = function() {
+        var host = document.getElementById('ep-host').value.trim();
+        var path = document.getElementById('ep-path').value.trim();
+        var decoder = document.getElementById('ep-decoder').value;
+        var method = document.getElementById('ep-method').value;
+        var errorEl = document.getElementById('ep-add-error');
+        errorEl.classList.add('hidden');
+
+        if (!host || !path || !decoder) {
+            errorEl.textContent = 'Host pattern, path pattern, and decoder are required.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        var btn = document.getElementById('ep-add-btn');
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+
+        // WebSocket creates two rules (WS_REQ + WS_RESP) pointing to the same decoder
+        var promises;
+        if (method === 'WebSocket') {
+            promises = Promise.all([
+                createRule(host, path, 'WS_REQ', decoder),
+                createRule(host, path, 'WS_RESP', decoder)
+            ]).then(function(results) {
+                // Return first error if any
+                for (var i = 0; i < results.length; i++) {
+                    if (!results[i].ok) return results[i];
+                }
+                return results[0];
+            });
+        } else {
+            promises = createRule(host, path, method, decoder);
+        }
+
+        promises
+        .then(function(res) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            if (!res.ok) {
+                errorEl.textContent = res.data.error || 'Failed to add rule.';
+                errorEl.classList.remove('hidden');
+            } else {
+                document.getElementById('ep-host').value = '';
+                loadEndpointRules();
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            errorEl.textContent = 'Network error.';
+            errorEl.classList.remove('hidden');
+        });
+    };
+
+    function deleteEndpointRules(idsStr) {
+        if (!confirm('Delete this endpoint rule? You may need to rebuild conversations afterward.')) return;
+        var ids = idsStr.split(',');
+        Promise.all(ids.map(function(id) {
+            return fetch(prefix + '/api/endpoint-rules/' + encodeURIComponent(id), { method: 'DELETE' });
+        })).then(function() { loadEndpointRules(); }).catch(function() {});
+    }
+
+    // Event delegation for endpoint rule delete buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-delete-endpoint-rules]');
+        if (btn) { deleteEndpointRules(btn.getAttribute('data-delete-endpoint-rules')); return; }
+    });
+
+    loadDissectors();
+    loadEndpointRules();
+
     // Load settings from server
     fetch(prefix + '/api/settings')
         .then(function(r) { return r.json(); })
@@ -965,6 +1303,7 @@
             updateNotifToggle(data.notifications.enabled, data.notifications.available);
             updateNotifStatus(data.notifications);
             updateMitmToggle(data.mitm.enabled);
+            updateConvToggle(data.conversations.enabled);
         })
         .catch(function() {});
 
