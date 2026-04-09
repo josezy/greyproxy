@@ -10,8 +10,8 @@ import (
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/hop"
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 	md "github.com/greyhavenhq/greyproxy/internal/gostcore/metadata"
-	greyproxy "github.com/greyhavenhq/greyproxy/internal/greyproxy"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/registry"
+	greyproxy "github.com/greyhavenhq/greyproxy/internal/greyproxy"
 	"github.com/miekg/dns"
 )
 
@@ -45,7 +45,7 @@ func OverrideDNSHandler() {
 	// Must unregister first — the registry uses LoadOrStore and calls Fatal on duplicates.
 	registry.HandlerRegistry().Unregister("dns")
 
-	registry.HandlerRegistry().Register("dns", func(opts ...handler.Option) handler.Handler {
+	_ = registry.HandlerRegistry().Register("dns", func(opts ...handler.Option) handler.Handler {
 		inner := origFactory(opts...)
 		return &cachingDNSHandler{inner: inner}
 	})

@@ -60,9 +60,9 @@ func (d *OpenAIDissector) Extract(input ExtractionInput) (*ExtractionResult, err
 	result := &ExtractionResult{Provider: d.Name()}
 
 	var body struct {
-		Model         string            `json:"model"`
-		Input         []json.RawMessage `json:"input"`
-		Tools         []struct {
+		Model string            `json:"model"`
+		Input []json.RawMessage `json:"input"`
+		Tools []struct {
 			Name        string `json:"name"`
 			Description string `json:"description"`
 		} `json:"tools"`
@@ -129,7 +129,7 @@ func (d *OpenAIDissector) Extract(input ExtractionInput) (*ExtractionResult, err
 				Name      string `json:"name"`
 				Arguments string `json:"arguments"`
 			}
-			json.Unmarshal(raw, &fc)
+			_ = json.Unmarshal(raw, &fc)
 
 			cb := ContentBlock{
 				Type: "tool_use",
@@ -157,7 +157,7 @@ func (d *OpenAIDissector) Extract(input ExtractionInput) (*ExtractionResult, err
 				CallID string `json:"call_id"`
 				Output string `json:"output"`
 			}
-			json.Unmarshal(raw, &fco)
+			_ = json.Unmarshal(raw, &fco)
 
 			content := fco.Output
 			if len(content) > 500 {
@@ -186,7 +186,7 @@ func (d *OpenAIDissector) Extract(input ExtractionInput) (*ExtractionResult, err
 					Text string `json:"text"`
 				} `json:"content"`
 			}
-			json.Unmarshal(raw, &msg)
+			_ = json.Unmarshal(raw, &msg)
 			m := Message{Role: msg.Role}
 			for _, c := range msg.Content {
 				if c.Type == "output_text" && c.Text != "" {
@@ -383,4 +383,3 @@ func matchToolCallID(callID, itemID string) bool {
 	// Simple heuristic: just match the last tool call added.
 	return callID != "" && itemID != ""
 }
-

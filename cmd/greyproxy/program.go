@@ -21,14 +21,9 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/fsnotify/fsnotify"
-	"github.com/klauspost/compress/zstd"
 	defaults "github.com/greyhavenhq/greyproxy"
 	"github.com/greyhavenhq/greyproxy/internal/gostcore/logger"
 	svccore "github.com/greyhavenhq/greyproxy/internal/gostcore/service"
-	greyproxy "github.com/greyhavenhq/greyproxy/internal/greyproxy"
-	greyproxy_api "github.com/greyhavenhq/greyproxy/internal/greyproxy/api"
-	greyproxy_plugins "github.com/greyhavenhq/greyproxy/internal/greyproxy/plugins"
-	greyproxy_ui "github.com/greyhavenhq/greyproxy/internal/greyproxy/ui"
 	"github.com/greyhavenhq/greyproxy/internal/gostx"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/config"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/config/loader"
@@ -37,7 +32,12 @@ import (
 	xmetrics "github.com/greyhavenhq/greyproxy/internal/gostx/metrics"
 	metrics "github.com/greyhavenhq/greyproxy/internal/gostx/metrics/service"
 	"github.com/greyhavenhq/greyproxy/internal/gostx/registry"
+	greyproxy "github.com/greyhavenhq/greyproxy/internal/greyproxy"
+	greyproxy_api "github.com/greyhavenhq/greyproxy/internal/greyproxy/api"
+	greyproxy_plugins "github.com/greyhavenhq/greyproxy/internal/greyproxy/plugins"
+	greyproxy_ui "github.com/greyhavenhq/greyproxy/internal/greyproxy/ui"
 	"github.com/kardianos/service"
+	"github.com/klauspost/compress/zstd"
 	"github.com/spf13/viper"
 )
 
@@ -46,9 +46,9 @@ type program struct {
 	srvGreyproxy *greyproxy.Service
 	srvProfiling *http.Server
 
-	cancel           context.CancelFunc
-	assemblerCancel  context.CancelFunc
-	credStoreCancel  context.CancelFunc
+	cancel          context.CancelFunc
+	assemblerCancel context.CancelFunc
+	credStoreCancel context.CancelFunc
 
 	certMtimeMu sync.Mutex
 	certMtime   time.Time // mtime of ca-cert.pem at last successful reload
@@ -139,7 +139,7 @@ func (p *program) watchCertFiles(ctx context.Context, dataDir string) {
 		logger.Default().Errorf("cert watcher: failed to create watcher: %v", err)
 		return
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 
 	if err := watcher.Add(dataDir); err != nil {
 		logger.Default().Errorf("cert watcher: failed to watch %s: %v", dataDir, err)
@@ -201,12 +201,12 @@ func (p *program) run(cfg *config.Config) error {
 	for _, svc := range registry.ServiceRegistry().GetAll() {
 		svc := svc
 		go func() {
-			svc.Serve()
+			_ = svc.Serve()
 		}()
 	}
 
 	if p.srvMetrics != nil {
-		p.srvMetrics.Close()
+		_ = p.srvMetrics.Close()
 		p.srvMetrics = nil
 	}
 	if cfg.Metrics != nil && cfg.Metrics.Addr != "" {
@@ -220,7 +220,7 @@ func (p *program) run(cfg *config.Config) error {
 		xmetrics.Enable(true)
 
 		go func() {
-			defer s.Close()
+			defer func() { _ = s.Close() }()
 
 			log := logger.Default().WithFields(map[string]any{"kind": "service", "service": "@metrics"})
 
@@ -232,7 +232,7 @@ func (p *program) run(cfg *config.Config) error {
 	}
 
 	if p.srvProfiling != nil {
-		p.srvProfiling.Close()
+		_ = p.srvProfiling.Close()
 		p.srvProfiling = nil
 	}
 	if cfg.Profiling != nil {
@@ -246,7 +246,7 @@ func (p *program) run(cfg *config.Config) error {
 		p.srvProfiling = s
 
 		go func() {
-			defer s.Close()
+			defer func() { _ = s.Close() }()
 
 			log := logger.Default().WithFields(map[string]any{"kind": "service", "service": "@profiling"})
 
@@ -273,16 +273,16 @@ func (p *program) Stop(s service.Service) error {
 	}
 
 	for name, srv := range registry.ServiceRegistry().GetAll() {
-		srv.Close()
+		_ = srv.Close()
 		logger.Default().Debugf("service %s shutdown", name)
 	}
 
 	if p.srvMetrics != nil {
-		p.srvMetrics.Close()
+		_ = p.srvMetrics.Close()
 		logger.Default().Debug("service @metrics shutdown")
 	}
 	if p.srvProfiling != nil {
-		p.srvProfiling.Close()
+		_ = p.srvProfiling.Close()
 		logger.Default().Debug("service @profiling shutdown")
 	}
 	if p.credStoreCancel != nil {
@@ -292,7 +292,7 @@ func (p *program) Stop(s service.Service) error {
 		p.assemblerCancel()
 	}
 	if p.srvGreyproxy != nil {
-		p.srvGreyproxy.Close()
+		_ = p.srvGreyproxy.Close()
 		logger.Default().Debug("service @greyproxy shutdown")
 	}
 
@@ -373,7 +373,6 @@ func (p *program) buildGreyproxyService() error {
 	if gaCfg.Resolver == "" {
 		gaCfg.Resolver = "resolver-0"
 	}
-
 
 	applyDockerEnvOverrides(&gaCfg)
 
@@ -668,10 +667,10 @@ func (p *program) buildGreyproxyService() error {
 	bypassPlugin := greyproxy_plugins.NewBypass(shared.DB, shared.Cache, shared.Bus, shared.Waiters, shared.ConnTracker, dockerResolver, allowAllManager)
 	resolverPlugin := greyproxy_plugins.NewResolver(shared.Cache)
 
-	registry.AutherRegistry().Register(gaCfg.Auther, autherPlugin)
-	registry.AdmissionRegistry().Register(gaCfg.Admission, admissionPlugin)
-	registry.BypassRegistry().Register(gaCfg.Bypass, bypassPlugin)
-	registry.ResolverRegistry().Register(gaCfg.Resolver, resolverPlugin)
+	_ = registry.AutherRegistry().Register(gaCfg.Auther, autherPlugin)
+	_ = registry.AdmissionRegistry().Register(gaCfg.Admission, admissionPlugin)
+	_ = registry.BypassRegistry().Register(gaCfg.Bypass, bypassPlugin)
+	_ = registry.ResolverRegistry().Register(gaCfg.Resolver, resolverPlugin)
 
 	log.Infof("plugins registered: auther=%s admission=%s bypass=%s resolver=%s",
 		gaCfg.Auther, gaCfg.Admission, gaCfg.Bypass, gaCfg.Resolver)
@@ -816,7 +815,7 @@ func decompressBody(body []byte, encoding string) []byte {
 	if err != nil {
 		return body
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	decoded, err := io.ReadAll(reader)
 	if err != nil {
 		return body
@@ -835,7 +834,7 @@ func decompressWebSocketFrame(payload []byte) ([]byte, error) {
 	const tail = "\x00\x00\xff\xff\x01\x00\x00\xff\xff"
 	mr := io.MultiReader(bytes.NewReader(payload), strings.NewReader(tail))
 	r := flate.NewReader(mr)
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 	return io.ReadAll(r)
 }
 

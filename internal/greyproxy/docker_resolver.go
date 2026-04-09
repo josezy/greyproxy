@@ -30,8 +30,8 @@ type dockerCacheEntry struct {
 
 // dockerContainerSummary parses the relevant fields from Docker's /containers/json response.
 type dockerContainerSummary struct {
-	ID      string   `json:"Id"`
-	Names   []string `json:"Names"`
+	ID              string   `json:"Id"`
+	Names           []string `json:"Names"`
 	NetworkSettings struct {
 		Networks map[string]struct {
 			IPAddress string `json:"IPAddress"`
@@ -130,7 +130,7 @@ func (r *DockerResolver) queryDockerForIP(ip string) (containerName, containerID
 	if err != nil {
 		return "", "", fmt.Errorf("docker api: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

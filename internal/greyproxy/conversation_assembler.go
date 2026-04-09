@@ -74,10 +74,10 @@ func (a *ConversationAssembler) RebuildAllConversations() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	slog.Info("assembler: rebuild requested, clearing old conversations and resetting cursor")
-	DeleteAllConversations(a.db)
-	SetConversationProcessingState(a.db, "last_processed_id", "0")
+	_ = DeleteAllConversations(a.db)
+	_ = SetConversationProcessingState(a.db, "last_processed_id", "0")
 	a.processNewTransactionsLocked()
-	SetConversationProcessingState(a.db, "assembler_version", strconv.Itoa(AssemblerVersion))
+	_ = SetConversationProcessingState(a.db, "assembler_version", strconv.Itoa(AssemblerVersion))
 	slog.Info("assembler: rebuild complete")
 }
 
@@ -165,7 +165,7 @@ func (a *ConversationAssembler) processNewTransactionsLocked() {
 	}
 	if len(newTxns) == 0 {
 		if maxID > lastID {
-			SetConversationProcessingState(a.db, "last_processed_id", strconv.FormatInt(maxID, 10))
+			_ = SetConversationProcessingState(a.db, "last_processed_id", strconv.FormatInt(maxID, 10))
 		}
 		return
 	}
@@ -182,7 +182,7 @@ func (a *ConversationAssembler) processNewTransactionsLocked() {
 	}
 
 	if len(affectedSessions) == 0 && len(sessionlessTxns) == 0 {
-		SetConversationProcessingState(a.db, "last_processed_id", strconv.FormatInt(maxID, 10))
+		_ = SetConversationProcessingState(a.db, "last_processed_id", strconv.FormatInt(maxID, 10))
 		return
 	}
 
@@ -264,7 +264,7 @@ func (a *ConversationAssembler) processNewTransactionsLocked() {
 		}
 	}
 
-	SetConversationProcessingState(a.db, "last_processed_id", strconv.FormatInt(maxID, 10))
+	_ = SetConversationProcessingState(a.db, "last_processed_id", strconv.FormatInt(maxID, 10))
 	slog.Info("assembler: processed conversations", "count", len(allConversations), "max_id", maxID)
 }
 
@@ -334,7 +334,7 @@ func (a *ConversationAssembler) loadNewTransactions(sinceID int64) ([]transactio
 	if err != nil {
 		return nil, sinceID, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entries []transactionEntry
 	maxID := sinceID
@@ -344,12 +344,12 @@ func (a *ConversationAssembler) loadNewTransactions(sinceID int64) ([]transactio
 
 	for rows.Next() {
 		var (
-			id            int64
+			id                               int64
 			ts, container, url, method, host string
-			reqBody, respBody []byte
-			respCT        *string
-			durationMsPtr *int64
-			reqHeadersJSON *string
+			reqBody, respBody                []byte
+			respCT                           *string
+			durationMsPtr                    *int64
+			reqHeadersJSON                   *string
 		)
 		if err := rows.Scan(&id, &ts, &container, &url, &method, &host,
 			&reqBody, &respBody, &respCT, &durationMsPtr, &reqHeadersJSON); err != nil {
@@ -483,17 +483,17 @@ func (a *ConversationAssembler) loadTransactionsForSessions(sessionIDs map[strin
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entries []transactionEntry
 	for rows.Next() {
 		var (
-			id            int64
+			id                               int64
 			ts, container, url, method, host string
-			reqBody, respBody []byte
-			respCT        *string
-			durationMsPtr *int64
-			reqHeadersJSON *string
+			reqBody, respBody                []byte
+			respCT                           *string
+			durationMsPtr                    *int64
+			reqHeadersJSON                   *string
 		)
 		if err := rows.Scan(&id, &ts, &container, &url, &method, &host,
 			&reqBody, &respBody, &respCT, &durationMsPtr, &reqHeadersJSON); err != nil {
@@ -894,14 +894,6 @@ func splitSubagentInvocations(entries []transactionEntry) [][]transactionEntry {
 	return invocations
 }
 
-func isRealUserMessage(msg dissector.Message) bool {
-	return defaultScaffolding.IsRealUserMessage(msg)
-}
-
-func getUserText(msg dissector.Message) *string {
-	return defaultScaffolding.GetUserText(msg)
-}
-
 // defaultScaffolding is used by legacy code paths that don't yet have
 // a per-client config. Matches the original hardcoded behavior.
 var defaultScaffolding = ClaudeCodeScaffolding()
@@ -1078,11 +1070,11 @@ func detectProvider(entries []transactionEntry) string {
 // SOCKS5 auth) to client adapter names. This is the most reliable detection
 // signal since it comes from the OS-level process name.
 var containerToClient = map[string]string{
-	"claude":  "claude-code",
-	"codex":   "codex",
+	"claude":   "claude-code",
+	"codex":    "codex",
 	"opencode": "opencode",
-	"aider":   "aider",
-	"gemini":  "gemini-cli",
+	"aider":    "aider",
+	"gemini":   "gemini-cli",
 }
 
 func inferClientName(provider string, entries []transactionEntry) string {
@@ -1352,11 +1344,11 @@ func assembleConversation(sessionID string, entries []transactionEntry) assemble
 		}
 	}
 	conv.metadata = map[string]any{
-		"total_requests":              len(entries),
-		"truncated_requests":          truncated,
-		"parseable_requests":          parseable,
-		"messages_in_best_request":    bestEntry.result.MessageCount,
-		"best_request_id":             bestEntry.txnID,
+		"total_requests":           len(entries),
+		"truncated_requests":       truncated,
+		"parseable_requests":       parseable,
+		"messages_in_best_request": bestEntry.result.MessageCount,
+		"best_request_id":          bestEntry.txnID,
 	}
 
 	return conv
@@ -1561,20 +1553,20 @@ func linkSubagentConversations(allConvs []assembledConversation) {
 
 func (a *ConversationAssembler) upsertConversation(conv assembledConversation) error {
 	input := ConversationUpsertInput{
-		ID:                  conv.conversationID,
-		Model:               conv.model,
-		ContainerName:       conv.containerName,
-		Provider:            conv.provider,
-		StartedAt:           conv.startedAt,
-		EndedAt:             conv.endedAt,
-		TurnCount:           conv.turnCount,
-		SystemPrompt:        conv.systemPrompt,
-		SystemPromptSummary: conv.systemPromptSummary,
+		ID:                   conv.conversationID,
+		Model:                conv.model,
+		ContainerName:        conv.containerName,
+		Provider:             conv.provider,
+		StartedAt:            conv.startedAt,
+		EndedAt:              conv.endedAt,
+		TurnCount:            conv.turnCount,
+		SystemPrompt:         conv.systemPrompt,
+		SystemPromptSummary:  conv.systemPromptSummary,
 		ParentConversationID: conv.parentConvID,
-		LastTurnHasResponse: conv.lastTurnHasResponse,
-		Incomplete:          conv.incomplete,
-		IncompleteReason:    conv.incompleteReason,
-		ClientName:          conv.clientName,
+		LastTurnHasResponse:  conv.lastTurnHasResponse,
+		Incomplete:           conv.incomplete,
+		IncompleteReason:     conv.incompleteReason,
+		ClientName:           conv.clientName,
 	}
 
 	input.MetadataJSON = jsonMarshalOrNil(conv.metadata)
@@ -1612,7 +1604,7 @@ func (a *ConversationAssembler) upsertConversation(conv assembledConversation) e
 
 	// Update http_transactions with conversation_id link
 	for _, txnID := range conv.requestIDs {
-		UpdateTransactionConversationID(a.db, txnID, conv.conversationID)
+		_ = UpdateTransactionConversationID(a.db, txnID, conv.conversationID)
 	}
 
 	return nil

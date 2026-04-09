@@ -26,8 +26,10 @@ import (
 // OpenAI Responses API WebSocket protocol.
 type OpenAIWSDissector struct{}
 
-func (d *OpenAIWSDissector) Name() string        { return "openai-ws" }
-func (d *OpenAIWSDissector) Description() string { return "OpenAI Responses API over WebSocket (Codex)" }
+func (d *OpenAIWSDissector) Name() string { return "openai-ws" }
+func (d *OpenAIWSDissector) Description() string {
+	return "OpenAI Responses API over WebSocket (Codex)"
+}
 
 func (d *OpenAIWSDissector) CanHandle(url, method, host string) bool {
 	if method != "WS_REQ" && method != "WS_RESP" {
@@ -54,11 +56,11 @@ func (d *OpenAIWSDissector) extractRequest(input ExtractionInput) (*ExtractionRe
 	result := &ExtractionResult{Provider: "openai"}
 
 	var body struct {
-		Type           string            `json:"type"`
-		Model          string            `json:"model"`
-		Instructions   string            `json:"instructions"`
-		Input          []json.RawMessage `json:"input"`
-		Tools          []struct {
+		Type         string            `json:"type"`
+		Model        string            `json:"model"`
+		Instructions string            `json:"instructions"`
+		Input        []json.RawMessage `json:"input"`
+		Tools        []struct {
 			Name        string `json:"name"`
 			Description string `json:"description"`
 		} `json:"tools"`
@@ -137,7 +139,7 @@ func (d *OpenAIWSDissector) extractRequest(input ExtractionInput) (*ExtractionRe
 				Name      string `json:"name"`
 				Arguments string `json:"arguments"`
 			}
-			json.Unmarshal(raw, &fc)
+			_ = json.Unmarshal(raw, &fc)
 
 			cb := ContentBlock{
 				Type: "tool_use",
@@ -162,7 +164,7 @@ func (d *OpenAIWSDissector) extractRequest(input ExtractionInput) (*ExtractionRe
 				CallID string `json:"call_id"`
 				Output string `json:"output"`
 			}
-			json.Unmarshal(raw, &fco)
+			_ = json.Unmarshal(raw, &fco)
 
 			content := fco.Output
 			if len(content) > 500 {
@@ -190,7 +192,7 @@ func (d *OpenAIWSDissector) extractRequest(input ExtractionInput) (*ExtractionRe
 					Text string `json:"text"`
 				} `json:"content"`
 			}
-			json.Unmarshal(raw, &msg)
+			_ = json.Unmarshal(raw, &msg)
 			m := Message{Role: msg.Role}
 			for _, c := range msg.Content {
 				if c.Type == "output_text" && c.Text != "" {
